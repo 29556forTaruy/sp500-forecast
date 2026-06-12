@@ -53,13 +53,17 @@ def month_end(year: int, month: int) -> pd.Timestamp:
     return pd.Timestamp(year=year, month=month, day=1) + pd.offsets.MonthEnd(0)
 
 
-def get_with_retry(url: str, tries: int = 3, timeout: int = 90) -> requests.Response:
+def get_with_retry(url: str, tries: int = 3, timeout: int = 90):
+    """GET with a real-browser TLS fingerprint (curl_cffi). FRED's WAF silently
+    times out / 504s python-requests clients once they request large series."""
+    from curl_cffi import requests as browser_requests
+
     for attempt in range(1, tries + 1):
         try:
-            r = requests.get(url, headers=UA, timeout=timeout)
+            r = browser_requests.get(url, impersonate="chrome", timeout=timeout)
             r.raise_for_status()
             return r
-        except requests.RequestException as e:
+        except Exception as e:
             if attempt == tries:
                 raise
             wait = min(20 * 2 ** (attempt - 1), 120)
@@ -79,7 +83,10 @@ def shiller_last_month(path: Path) -> pd.Timestamp | None:
 
 
 def cached_today(path: Path) -> bool:
-    return path.exists() and pd.Timestamp(path.stat().st_mtime, unit="s").date() == pd.Timestamp.today().date()
+    if not path.exists():
+        return False
+    mtime_local = pd.Timestamp.fromtimestamp(path.stat().st_mtime)  # local clock
+    return mtime_local.date() == pd.Timestamp.now().date()
 
 
 def download_shiller() -> Path:
@@ -168,6 +175,38 @@ def parse_shiller(path: Path) -> pd.DataFrame:
 
 # ------------------------------------------------------------------- FRED
 
+# Daily series choke FRED's CSV backend when requested whole (504/timeouts that
+# scale with row count), so they are fetched in 4-year chunks from their start year.
+FRED_DAILY_START = {
+    "DGS10": 1962, "DGS2": 1976, "T10Y3M": 1982, "T10Y2Y": 1976,
+    "DFII10": 2003, "BAMLH0A0HYM2": 1996, "VIXCLS": 1990,
+}
+
+
+def fetch_fred_series(series: str) -> bytes:
+    base = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}"
+    if series not in FRED_DAILY_START:
+        return get_with_retry(base, tries=3, timeout=60).content
+    end_year = pd.Timestamp.today().year
+    lines: list[str] = []
+    for y0 in range(FRED_DAILY_START[series], end_year + 1, 4):
+        y1 = min(y0 + 3, end_year)
+        url = f"{base}&cosd={y0}-01-01&coed={y1}-12-31"
+        chunk = get_with_retry(url, tries=3, timeout=90).text.strip().splitlines()
+        if len(chunk) > 1 and chunk[1].split(",")[0] > f"{y1}-12-31":
+            # server ignored cosd/coed (licensed series, e.g. ICE BofA, are clamped
+            # to a trailing window on the keyless endpoint) — keep that window only
+            print(f"    {series}: fredgraph ignores cosd/coed; only "
+                  f"{chunk[1].split(',')[0]}..{chunk[-1].split(',')[0]} available", flush=True)
+            return ("\n".join(chunk) + "\n").encode()
+        if not lines:
+            lines.append(chunk[0])  # header once
+        lines.extend(chunk[1:])
+        print(f"    {series} {y0}-{y1}: {len(chunk) - 1} rows", flush=True)
+        time.sleep(1.5)
+    return ("\n".join(lines) + "\n").encode()
+
+
 def fetch_fred() -> pd.DataFrame:
     """Keyless fredgraph.csv endpoint. Missing values are '.'; the date column
     name varies by version so both columns are taken by position."""
@@ -177,14 +216,13 @@ def fetch_fred() -> pd.DataFrame:
         cache = RAW / f"fred_{series}.csv"
         if not cached_today(cache):
             time.sleep(2.0)
-            url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}"
             try:
-                r = get_with_retry(url, tries=3, timeout=60)
-            except requests.RequestException as e:
+                content = fetch_fred_series(series)
+            except Exception as e:
                 print(f"  {series}: FAILED ({e}); continuing — rerun later to fill", flush=True)
                 failed.append(series)
                 continue
-            cache.write_bytes(r.content)
+            cache.write_bytes(content)
         df = pd.read_csv(cache, na_values=".")
         s = pd.Series(
             pd.to_numeric(df.iloc[:, 1], errors="coerce").values,
@@ -292,8 +330,13 @@ def main() -> None:
     print(f"  -> shiller_monthly.csv {shiller.shape}, last={shiller['date'].max().date()}")
 
     print("[2/5] ^GSPC daily via yfinance ...")
-    spx = fetch_spx()
-    spx.to_csv(OUT / "spx_daily.csv", index=False)
+    spx_path = OUT / "spx_daily.csv"
+    if cached_today(spx_path):
+        spx = pd.read_csv(spx_path, parse_dates=["date"])
+        print("  using today's cached copy")
+    else:
+        spx = fetch_spx()
+        spx.to_csv(spx_path, index=False)
     print(f"  -> spx_daily.csv {spx.shape}, last={spx['date'].max().date()} close={spx['close'].iloc[-1]:.2f}")
 
     print("[3/5] FRED (14 series) ...")
