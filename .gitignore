@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# ダウンロード生データのキャッシュ(再取得可能。processed のみ管理する)
+data/raw/
+
+# ローカル設定
+.claude/
+.DS_Store
