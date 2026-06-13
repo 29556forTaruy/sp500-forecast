@@ -2,7 +2,7 @@
 
 ## プロジェクト概要
 
-S&P 500 の今後1年の値動きを確率分布(分位点+ファンチャート)として予測するモデルと、毎日自動更新されるアプリを段階的に開発する。全体計画・モデル仕様(Level 0 構造アンカー等)は `PLAN.md` を正とする。フェーズ2(データ収集)完了。フェーズ3(特徴量設計・Level 0 実証)に着手済み(`phase3_level0.py`、結果は PLAN.md §11)。data/processed の生の収集CSV は「生の値の月末整列」まで(発表ラグ調整は特徴量・バックテスト側で実施)。
+S&P 500 の今後1年の値動きを確率分布(分位点+ファンチャート)として予測するモデルと、毎日自動更新されるアプリを段階的に開発する。全体計画・モデル仕様(Level 0 構造アンカー等)は `PLAN.md` を正とする。フェーズ2(データ収集)完了。フェーズ3(Level 0 アンカー実証、`phase3_level0.py`、PLAN.md §11)完了。フェーズ4着手: Level 2 ElasticNet 残差モードを検証し**マクロ指標は1年点予測に signal を足さないと判明・棄却**(`phase4_level2.py`、PLAN.md §12。マクロは Level 5 の分散モデルへ持ち越し)。data/processed の生の収集CSV は「生の値の月末整列」まで(発表ラグ調整は特徴量・バックテスト側で実施)。
 
 ## ディレクトリ構成
 
@@ -11,6 +11,7 @@ S&P 500 の今後1年の値動きを確率分布(分位点+ファンチャート
 ├── PLAN.md               # 開発計画(モデル仕様 §5.1、§11=Level 0 実証結果、付録A=設計判断の根拠)
 ├── fetch_sp500_data.py   # フェーズ2 データ収集パイプライン(uv run python fetch_sp500_data.py)
 ├── phase3_level0.py      # フェーズ3 Level 0 特徴量+ウォークフォワード・バックテスト(uv run python phase3_level0.py)
+├── phase4_level2.py      # フェーズ4 Level 2 ElasticNet残差モード検証(uv run python phase4_level2.py)
 ├── DATA_REPORT.md        # 収集結果レポート(各系列のカバレッジ、サニティチェック)
 ├── pyproject.toml        # uv プロジェクト(Python 3.11+; pandas, requests, yfinance, xlrd, numpy, statsmodels, matplotlib, curl-cffi)
 └── data/

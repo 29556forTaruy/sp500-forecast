@@ -1,0 +1,156 @@
+{
+  "spec": {
+    "H": 12,
+    "refit_every": 12,
+    "min_train": 180,
+    "eval_window_note": "core OOS window is 1992-2025 (T10Y2Y starts 1976-07 + MIN_TRAIN)"
+  },
+  "core_residual": {
+    "tag": "core",
+    "mode": "residual",
+    "n_origins": 397,
+    "date_range": [
+      "1992-06-30",
+      "2025-06-30"
+    ],
+    "rmse_level2": 0.17246341340075919,
+    "rmse_level0": 0.16592022261036984,
+    "oos_r2_level2_vs_level0": -0.08042670809243457,
+    "oos_r2_level2_vs_drift": -0.13916512405130899,
+    "oos_r2_level2_vs_rw_drift": -0.10968875612299844,
+    "clark_west_vs_level0": {
+      "cw_mean": 0.0009447157597594055,
+      "cw_t": 0.4019873188828522,
+      "cw_p_onesided": 0.34384667948215
+    },
+    "dir_hit_level2": 0.7481108312342569,
+    "dir_hit_level0": 0.7934508816120907,
+    "n_refits": 34,
+    "mean_abs_coef": {
+      "val_gap_as_is": 0.015296137942435329,
+      "cape_pctile_as_is": 0.018916313505874967,
+      "T10Y2Y_as_is": 0.0025164206111388827,
+      "DGS10_chg12": 0.005225908268098848,
+      "FEDFUNDS_chg12": 0.0031681150025875916,
+      "NFCI_as_is": 0.003090226142783829,
+      "UNRATE_chg12": 0.0027687341999655603,
+      "INDPRO_yoy": 0.005070136614421548,
+      "M2SL_yoy": 0.020362619544940643
+    },
+    "frac_nonzero": {
+      "val_gap_as_is": 0.17647058823529413,
+      "cape_pctile_as_is": 0.29411764705882354,
+      "T10Y2Y_as_is": 0.08823529411764706,
+      "DGS10_chg12": 0.2647058823529412,
+      "FEDFUNDS_chg12": 0.14705882352941177,
+      "NFCI_as_is": 0.08823529411764706,
+      "UNRATE_chg12": 0.14705882352941177,
+      "INDPRO_yoy": 0.11764705882352941,
+      "M2SL_yoy": 0.5882352941176471
+    },
+    "oos_r2_level2_vs_level0_post1990": -0.08042670809243457
+  },
+  "core_standalone": {
+    "tag": "core_standalone",
+    "mode": "standalone",
+    "n_origins": 397,
+    "date_range": [
+      "1992-06-30",
+      "2025-06-30"
+    ],
+    "rmse_level2": 0.17085477331569865,
+    "rmse_level0": 0.16592022261036984,
+    "oos_r2_level2_vs_level0": -0.06036550137163754,
+    "oos_r2_level2_vs_drift": -0.1180132709255528,
+    "oos_r2_level2_vs_rw_drift": -0.08908421593014082,
+    "clark_west_vs_level0": {
+      "cw_mean": 0.003922039630646419,
+      "cw_t": 0.9405088730684708,
+      "cw_p_onesided": 0.17347830021915034
+    },
+    "dir_hit_level2": 0.7556675062972292,
+    "dir_hit_level0": 0.7934508816120907,
+    "n_refits": 34,
+    "mean_abs_coef": {
+      "val_gap_as_is": 0.025860314302579134,
+      "cape_pctile_as_is": 0.014934020198505744,
+      "T10Y2Y_as_is": 0.00241039229234352,
+      "DGS10_chg12": 0.005447703718023964,
+      "FEDFUNDS_chg12": 0.0038287480220865135,
+      "NFCI_as_is": 0.004392702439494441,
+      "UNRATE_chg12": 0.00325268198884261,
+      "INDPRO_yoy": 0.005174493613318317,
+      "M2SL_yoy": 0.012818268613070415
+    },
+    "frac_nonzero": {
+      "val_gap_as_is": 0.29411764705882354,
+      "cape_pctile_as_is": 0.08823529411764706,
+      "T10Y2Y_as_is": 0.08823529411764706,
+      "DGS10_chg12": 0.17647058823529413,
+      "FEDFUNDS_chg12": 0.17647058823529413,
+      "NFCI_as_is": 0.11764705882352941,
+      "UNRATE_chg12": 0.17647058823529413,
+      "INDPRO_yoy": 0.11764705882352941,
+      "M2SL_yoy": 0.29411764705882354
+    },
+    "oos_r2_level2_vs_level0_post1990": -0.06036550137163754
+  },
+  "modern_residual": {
+    "tag": "modern",
+    "mode": "residual",
+    "n_origins": 234,
+    "date_range": [
+      "2006-01-31",
+      "2025-06-30"
+    ],
+    "rmse_level2": 0.19543968097184072,
+    "rmse_level0": 0.16292542239336932,
+    "oos_r2_level2_vs_level0": -0.4389568762872862,
+    "oos_r2_level2_vs_drift": -0.4157975977669084,
+    "oos_r2_level2_vs_rw_drift": -0.39367878223532404,
+    "clark_west_vs_level0": {
+      "cw_mean": -0.00508275761999968,
+      "cw_t": -0.6098873441968086,
+      "cw_p_onesided": 0.27096821832086604
+    },
+    "dir_hit_level2": 0.7521367521367521,
+    "dir_hit_level0": 0.8076923076923077,
+    "n_refits": 21,
+    "mean_abs_coef": {
+      "val_gap_as_is": 0.03774145518354449,
+      "cape_pctile_as_is": 0.01865496915632469,
+      "T10Y2Y_as_is": 0.0015413157829792111,
+      "DGS10_chg12": 0.002131597027757259,
+      "FEDFUNDS_chg12": 0.006023913513141304,
+      "NFCI_as_is": 0.0010927024986687704,
+      "UNRATE_chg12": 0.0036594869576582765,
+      "INDPRO_yoy": 0.02420492601352342,
+      "M2SL_yoy": 0.014406494769953159,
+      "VIXCLS_as_is": 0.007400289686907149
+    },
+    "frac_nonzero": {
+      "val_gap_as_is": 0.23809523809523808,
+      "cape_pctile_as_is": 0.19047619047619047,
+      "T10Y2Y_as_is": 0.19047619047619047,
+      "DGS10_chg12": 0.19047619047619047,
+      "FEDFUNDS_chg12": 0.2857142857142857,
+      "NFCI_as_is": 0.23809523809523808,
+      "UNRATE_chg12": 0.2857142857142857,
+      "INDPRO_yoy": 0.2857142857142857,
+      "M2SL_yoy": 0.23809523809523808,
+      "VIXCLS_as_is": 0.23809523809523808
+    },
+    "oos_r2_level2_vs_level0_post1990": -0.4389568762872862
+  },
+  "macro_vs_absError_corr_for_level5": {
+    "val_gap_as_is": -0.1504557865128638,
+    "cape_pctile_as_is": 0.13844782505161654,
+    "T10Y2Y_as_is": -0.13804457032669176,
+    "DGS10_chg12": -0.06769563429643716,
+    "FEDFUNDS_chg12": -0.12672184295679184,
+    "NFCI_as_is": 0.12922746214259737,
+    "UNRATE_chg12": 0.16423997903782833,
+    "INDPRO_yoy": -0.07087192650390901,
+    "M2SL_yoy": 0.11837301759997008
+  }
+}
