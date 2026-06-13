@@ -1,0 +1,35 @@
+name: daily-forecast
+
+# Refresh data and regenerate the forecast after the US market close.
+# 10:00 UTC Tue–Sat covers the prior US trading day (Mon–Fri).
+# NOTE: requires this repo to live on GitHub. The job commits the updated
+# app/forecast.json + app/history.json back to the default branch, which
+# needs "Settings → Actions → Workflow permissions → Read and write".
+on:
+  schedule:
+    - cron: "0 10 * * 2-6"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Sync deps
+        run: uv sync
+      - name: Fetch data (Shiller / FRED / yfinance)
+        run: uv run python fetch_sp500_data.py
+      - name: Generate forecast
+        run: uv run python forecast.py
+      - name: Commit refreshed outputs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app/forecast.json app/history.json data/processed/*.csv
+          git diff --cached --quiet || git commit -m "daily: refresh forecast ($(date -u +%F))"
+          git push

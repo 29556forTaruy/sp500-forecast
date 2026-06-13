@@ -13,11 +13,17 @@ S&P 500 の今後1年の値動きを確率分布(分位点+ファンチャート
 ├── phase3_level0.py      # フェーズ3 Level 0 特徴量+ウォークフォワード・バックテスト(uv run python phase3_level0.py)
 ├── phase4_level2.py      # フェーズ4 Level 2 ElasticNet残差モード検証(uv run python phase4_level2.py)
 ├── phase5_fanchart.py    # フェーズ5 Level 5 確率的ファンチャート・較正検証(uv run python phase5_fanchart.py)
+├── forecast.py           # フェーズ6/7 日次予測エンジン → app/*.json(uv run python forecast.py)
+├── app/                  # Streamlitアプリ(uv run streamlit run app/streamlit_app.py)
+│   ├── streamlit_app.py  #   3画面: ファンチャート/指標ヒートマップ/答え合わせログ
+│   ├── forecast.json     #   最新予測(エンジン出力、git管理=Actionsが更新)
+│   └── history.json      #   答え合わせログ(バックフィル済み)
+├── .github/workflows/daily.yml  # 日次バッチ雛形(fetch→forecast→commit、要GitHub設定)
 ├── DATA_REPORT.md        # 収集結果レポート(各系列のカバレッジ、サニティチェック)
-├── pyproject.toml        # uv プロジェクト(Python 3.11+; pandas, requests, yfinance, xlrd, numpy, statsmodels, matplotlib, curl-cffi)
+├── pyproject.toml        # uv (Python 3.11+; pandas, requests, yfinance, xlrd, numpy, statsmodels, matplotlib, curl-cffi, scikit-learn, arch, streamlit, plotly)
 └── data/
     ├── raw/              # ダウンロード生データのキャッシュ(ie_data.xls, fred_*.csv)
-    └── processed/        # 出力CSV(下記スキーマ)+ level0_* (フェーズ3成果物)
+    └── processed/        # 出力CSV(下記スキーマ)+ level0_*/level2_*/level5_* (フェーズ3–5成果物)
 ```
 
 ## 出力CSVのスキーマ (data/processed/)
