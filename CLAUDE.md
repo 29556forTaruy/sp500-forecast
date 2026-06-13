@@ -2,19 +2,20 @@
 
 ## プロジェクト概要
 
-S&P 500 の今後1年の値動きを確率分布(分位点+ファンチャート)として予測するモデルと、毎日自動更新されるアプリを段階的に開発する。全体計画・モデル仕様(Level 0 構造アンカー等)は `PLAN.md` を正とする。現在はフェーズ2(データ収集)完了段階。発表ラグ調整・特徴量変換はフェーズ3で行う — このリポジトリの processed CSV は「生の値の月末整列」まで。
+S&P 500 の今後1年の値動きを確率分布(分位点+ファンチャート)として予測するモデルと、毎日自動更新されるアプリを段階的に開発する。全体計画・モデル仕様(Level 0 構造アンカー等)は `PLAN.md` を正とする。フェーズ2(データ収集)完了。フェーズ3(特徴量設計・Level 0 実証)に着手済み(`phase3_level0.py`、結果は PLAN.md §11)。data/processed の生の収集CSV は「生の値の月末整列」まで(発表ラグ調整は特徴量・バックテスト側で実施)。
 
 ## ディレクトリ構成
 
 ```
 .
-├── PLAN.md               # 開発計画(モデル仕様 §5.1、検証ゲート、付録A=設計判断の根拠)
+├── PLAN.md               # 開発計画(モデル仕様 §5.1、§11=Level 0 実証結果、付録A=設計判断の根拠)
 ├── fetch_sp500_data.py   # フェーズ2 データ収集パイプライン(uv run python fetch_sp500_data.py)
+├── phase3_level0.py      # フェーズ3 Level 0 特徴量+ウォークフォワード・バックテスト(uv run python phase3_level0.py)
 ├── DATA_REPORT.md        # 収集結果レポート(各系列のカバレッジ、サニティチェック)
-├── pyproject.toml        # uv プロジェクト(Python 3.11+; pandas, requests, yfinance, xlrd)
+├── pyproject.toml        # uv プロジェクト(Python 3.11+; pandas, requests, yfinance, xlrd, numpy, statsmodels, matplotlib, curl-cffi)
 └── data/
     ├── raw/              # ダウンロード生データのキャッシュ(ie_data.xls, fred_*.csv)
-    └── processed/        # 出力CSV(下記スキーマ)
+    └── processed/        # 出力CSV(下記スキーマ)+ level0_* (フェーズ3成果物)
 ```
 
 ## 出力CSVのスキーマ (data/processed/)

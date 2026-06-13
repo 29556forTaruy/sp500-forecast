@@ -1,0 +1,137 @@
+{
+  "spec": {
+    "H": 12,
+    "MED_WIN": 360,
+    "G_WIN": 240,
+    "MIN_TRAIN": 120,
+    "lambda_prior": 0.1,
+    "lambda_cap": 0.35,
+    "lag_months": 3
+  },
+  "insample_lambda_nw": {
+    "lambda": 0.05418329048343355,
+    "nw_t": 1.4020257208922042,
+    "r2": 0.01499645841130992,
+    "n": 1375
+  },
+  "unlagged": {
+    "n_origins": 1244,
+    "date_range": [
+      "1921-11-30",
+      "2025-06-30"
+    ],
+    "level0_est": {
+      "rmse": 0.18985127758673062,
+      "mae": 0.1439485568207355,
+      "oos_r2_vs_rw_zero": 0.130274560040197,
+      "oos_r2_vs_rw_drift": 0.08092625071485915,
+      "mean_signed_err": 0.027442165566634785
+    },
+    "level0_prior": {
+      "rmse": 0.18813584852610857,
+      "mae": 0.14280978233686498,
+      "oos_r2_vs_rw_zero": 0.14592061664272826,
+      "oos_r2_vs_rw_drift": 0.09746006614962499,
+      "mean_signed_err": 0.029030011258225907
+    },
+    "full_reversion": {
+      "rmse": 0.40478762963380754,
+      "mae": 0.3274496186726415,
+      "oos_r2_vs_rw_zero": -2.9537535004670437,
+      "oos_r2_vs_rw_drift": -3.1780898735024268,
+      "mean_signed_err": 0.11806912267770035
+    },
+    "drift_only": {
+      "rmse": 0.19173714098385722,
+      "mae": 0.1433998144067053,
+      "oos_r2_vs_rw_zero": 0.11291012963281144,
+      "oos_r2_vs_rw_drift": 0.06257656077195684,
+      "mean_signed_err": 0.019136776656062084
+    },
+    "rw_zero": {
+      "rmse": 0.20357405957781058,
+      "mae": 0.16138106256994417,
+      "oos_r2_vs_rw_zero": 0.0,
+      "oos_r2_vs_rw_drift": -0.05674010102270732,
+      "mean_signed_err": 0.06497596228298377
+    },
+    "rw_drift": {
+      "rmse": 0.19803335404584796,
+      "mae": 0.14932586707351544,
+      "oos_r2_vs_rw_zero": 0.05369352499048219,
+      "oos_r2_vs_rw_drift": 0.0,
+      "mean_signed_err": 0.030205070417309614
+    },
+    "band_cover_90": 0.1832797427652733,
+    "band_cover_50": 0.08681672025723473
+  },
+  "lag3_headline": {
+    "n_origins": 1241,
+    "date_range": [
+      "1922-02-28",
+      "2025-06-30"
+    ],
+    "level0_est": {
+      "rmse": 0.18919287763132622,
+      "mae": 0.14352942431445434,
+      "oos_r2_vs_rw_zero": 0.13634590921887557,
+      "oos_r2_vs_rw_drift": 0.0865501935169446,
+      "mean_signed_err": 0.027810164203815137
+    },
+    "level0_prior": {
+      "rmse": 0.18737533398712583,
+      "mae": 0.14231134398401782,
+      "oos_r2_vs_rw_zero": 0.15286015609648218,
+      "oos_r2_vs_rw_drift": 0.10401660255220968,
+      "mean_signed_err": 0.028710051182799956
+    },
+    "full_reversion": {
+      "rmse": 0.4012291909727691,
+      "mae": 0.3264593496774344,
+      "oos_r2_vs_rw_zero": -2.8843227894178662,
+      "oos_r2_vs_rw_drift": -3.10828124151232,
+      "mean_signed_err": 0.11742162151455317
+    },
+    "drift_only": {
+      "rmse": 0.1917989591586742,
+      "mae": 0.14334538250616596,
+      "oos_r2_vs_rw_zero": 0.1123888262472269,
+      "oos_r2_vs_rw_drift": 0.06121181668536091,
+      "mean_signed_err": 0.018853210034827376
+    },
+    "rw_zero": {
+      "rmse": 0.20357988545528524,
+      "mae": 0.16128632159916392,
+      "oos_r2_vs_rw_zero": 0.0,
+      "oos_r2_vs_rw_drift": -0.057657013651025046,
+      "mean_signed_err": 0.06464817111005941
+    },
+    "rw_drift": {
+      "rmse": 0.19795315994630877,
+      "mae": 0.14908441782528475,
+      "oos_r2_vs_rw_zero": 0.05451390470337214,
+      "oos_r2_vs_rw_drift": 0.0,
+      "mean_signed_err": 0.02947526473696491
+    },
+    "band_cover_90": 0.19500402900886382,
+    "band_cover_50": 0.09347300564061241
+  },
+  "honest": {
+    "full": {
+      "level0_est_vs_rw_drift": 0.08092625071485915,
+      "drift_only_vs_rw_drift": 0.06257656077195684,
+      "level0_est_vs_drift_only": 0.01957460116210996
+    },
+    "post1950": {
+      "level0_est_vs_rw_drift": 0.03699599667530595,
+      "drift_only_vs_rw_drift": 0.050418965436986096,
+      "level0_est_vs_drift_only": -0.014135674864080627
+    },
+    "post1960": {
+      "level0_est_vs_rw_drift": 0.022980436880575827,
+      "drift_only_vs_rw_drift": 0.039510871590024865,
+      "level0_est_vs_drift_only": -0.017210433955472393
+    },
+    "pre1950_share_of_improvement": 0.7935194290927204
+  }
+}
