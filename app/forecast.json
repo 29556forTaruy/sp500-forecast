@@ -198,9 +198,68 @@
       "2025-06-30"
     ],
     "n": 982,
+    "cover50": 0.511,
     "cover80": 0.811,
     "cover90": 0.895,
     "pit_ks": 0.053,
+    "pit_hist": [
+      118,
+      96,
+      57,
+      85,
+      84,
+      116,
+      122,
+      123,
+      116,
+      65
+    ],
     "note": "walk-forward calibrated; outer bands reliable"
-  }
+  },
+  "case_studies": [
+    {
+      "label": "Dot-com peak (Dec 1999)",
+      "origin": "1999-12-31",
+      "spot": 1428.7,
+      "fc_median": 1451.6,
+      "fc_lo90": 1094.2,
+      "fc_hi90": 1865.1,
+      "realized": 1330.9,
+      "realized_ret_pct": -6.8,
+      "in90": true
+    },
+    {
+      "label": "Pre-GFC peak (Oct 2007)",
+      "origin": "2007-10-31",
+      "spot": 1539.7,
+      "fc_median": 1653.8,
+      "fc_lo90": 1304.1,
+      "fc_hi90": 1999.8,
+      "realized": 968.8,
+      "realized_ret_pct": -37.1,
+      "in90": false
+    },
+    {
+      "label": "GFC trough (Mar 2009)",
+      "origin": "2009-03-31",
+      "spot": 757.1,
+      "fc_median": 897.8,
+      "fc_lo90": 508.0,
+      "fc_hi90": 1376.1,
+      "realized": 1152.0,
+      "realized_ret_pct": 52.2,
+      "in90": true
+    },
+    {
+      "label": "Pre-COVID (Feb 2020)",
+      "origin": "2020-02-29",
+      "spot": 3277.3,
+      "fc_median": 3559.4,
+      "fc_lo90": 2786.3,
+      "fc_hi90": 4245.3,
+      "realized": 3883.4,
+      "realized_ret_pct": 18.5,
+      "in90": true
+    }
+  ]
 }

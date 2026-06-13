@@ -86,6 +86,35 @@ def build_history(d, realized, mu, quant, best_idx_model, P0_series, n_per_year=
     return rows
 
 
+CASE_STUDIES = [
+    ("1999-12-31", "Dot-com peak (Dec 1999)"),
+    ("2007-10-31", "Pre-GFC peak (Oct 2007)"),
+    ("2009-03-31", "GFC trough (Mar 2009)"),
+    ("2020-02-29", "Pre-COVID (Feb 2020)"),
+]
+
+
+def case_studies(d, realized, quant, model, p0_series):
+    """Forecasts the model made at famous turning points + what actually happened —
+    the honest record including the misses (e.g. it could not foresee 2008)."""
+    dates = d.index
+    qmd = int(np.where(np.isclose(QGRID, 0.5))[0][0])
+    rows = []
+    for tgt, label in CASE_STUDIES:
+        i = int(np.argmin(np.abs(dates - pd.Timestamp(tgt))))
+        if np.isnan(quant[model][i, 0]):
+            continue
+        p0 = float(p0_series.iloc[i])
+        rows.append({"label": label, "origin": str(dates[i].date()), "spot": round(p0, 1),
+                     "fc_median": round(p0 * np.exp(quant[model][i, qmd]), 1),
+                     "fc_lo90": round(p0 * np.exp(quant[model][i, 0]), 1),
+                     "fc_hi90": round(p0 * np.exp(quant[model][i, -1]), 1),
+                     "realized": round(p0 * np.exp(realized[i]), 1),
+                     "realized_ret_pct": round((np.exp(realized[i]) - 1) * 100, 1),
+                     "in90": bool(quant[model][i, 0] <= realized[i] <= quant[model][i, -1])})
+    return rows
+
+
 def main():
     APP.mkdir(exist_ok=True)
     print("running validated ladder (Level 0 drift + Level 5 vol models) ...")
@@ -105,7 +134,12 @@ def main():
     months, bands, q12 = fan_from_fhs(mu_L, sig_L, zpool, P0)
 
     master = pd.read_csv(OUT / "master_monthly.csv", parse_dates=["date"])
+    p0_series = pd.Series(np.exp(df.set_index("date")["log_p"].reindex(d.index).to_numpy()), index=d.index)
     qs = [0.05, 0.25, 0.5, 0.75, 0.95]
+
+    pit_best = pit[best][common]
+    pit_best = pit_best[~np.isnan(pit_best)]
+    pit_counts, _ = np.histogram(pit_best, bins=10, range=(0, 1))
     forecast = {
         "asof": asof,
         "spot": round(P0, 1),
@@ -120,12 +154,15 @@ def main():
         "indicators": indicator_panel(master),
         "calibration": {"window": [str(d.index[common].min().date()), str(d.index[common].max().date())],
                         "n": int(common.sum()),
-                        "cover80": round(cov["cover_80"], 3), "cover90": round(cov["cover_90"], 3),
-                        "pit_ks": round(cov["pit_ks"], 3), "note": "walk-forward calibrated; outer bands reliable"},
+                        "cover50": round(cov["cover_50"], 3), "cover80": round(cov["cover_80"], 3),
+                        "cover90": round(cov["cover_90"], 3),
+                        "pit_ks": round(cov["pit_ks"], 3),
+                        "pit_hist": pit_counts.tolist(),
+                        "note": "walk-forward calibrated; outer bands reliable"},
+        "case_studies": case_studies(d, realized, quant, best, p0_series),
     }
     (APP / "forecast.json").write_text(json.dumps(forecast, indent=2))
 
-    p0_series = pd.Series(np.exp(df.set_index("date")["log_p"].reindex(d.index).to_numpy()), index=d.index)
     history = build_history(d, realized, mu, quant, best, p0_series)
     hit = np.mean([h["in90"] for h in history]) if history else float("nan")
     (APP / "history.json").write_text(json.dumps(
