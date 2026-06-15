@@ -49,12 +49,13 @@ T = {
         "sel_horizon": "Horizon",
         "sel_index": "Market",
         "jp_caveat": (
-            "🇯🇵 **Japan model — read this.** Unlike the US model, this has **no long-run "
-            "valuation backbone**: there is no free 30-year Japanese CAPE. The fan's *width and "
-            "shape* are calibrated from history (GARCH + FHS), but the *center* is a neutral "
-            "historical-drift baseline, **not** a valuation call — in particular it would **not** "
-            "have called the 1989 bubble top. Read it as a calibrated uncertainty band around a "
-            "neutral drift (in JPY, price index)."),
+            "🇯🇵 **Japan model — read this.** There is no free 30-year Japanese CAPE, so a "
+            "price-trend valuation proxy was built and **tested** — it shows no detectable 1-year "
+            "signal (λ≈0), exactly like US CAPE at 1 year — and is therefore shown only as *context* "
+            "(heatmap), not used in the drift. The fan's *width and shape* are calibrated from "
+            "history (GARCH + FHS); the *center* is a neutral historical-drift baseline, **not** a "
+            "valuation call — it would **not** have called the 1989 bubble top, and the calibration "
+            "uses only the recent decades. (JPY, price index.)"),
         "jp_no_panel": "The indicator heatmap uses US macro series (Fed / Shiller) and isn't "
                        "available for the Japan index yet.",
         "jp_us_only": "This view uses the 1-year US walk-forward history and is available for "
@@ -79,10 +80,11 @@ T = {
             "only ~**{neff}** *independent* {h} windows, so read the band as *indicative*, not a "
             "calibrated 90% interval."),
         "fan_info_long": (
-            "Long-run view ({h}): the 90% band historically covered {c90} of outcomes — but this "
-            "rests on just ~**{neff}** *independent* {h} windows, far too few to calibrate honestly. "
-            "Read the median as a valuation-based expected return and the band as indicative, not a "
-            "90% guarantee. This is where CAPE actually has predictive power (PLAN §A3)."),
+            "Long-run view ({h}): the 90% band historically covered {c90} of outcomes — but with an "
+            "**80% bootstrap CI of {ci}**, because this rests on just ~**{neff}** *independent* {h} "
+            "windows, far too few to calibrate honestly. Read the median as a valuation-based "
+            "expected return and the band as indicative, not a 90% guarantee. This is where CAPE "
+            "actually has predictive power (PLAN §A3)."),
         "tabs": ["① Fan chart", "② Indicator heatmap", "③ Calibration",
                  "④ Answer-key log", "⑤ Time machine", "⑥ How it works"],
         # fan chart
@@ -114,6 +116,10 @@ T = {
             "Hover any cell for detail. CAPE near its all-time-high percentile is the dominant red "
             "flag, but valuation is a *long-horizon* signal — it shapes the distribution more than "
             "the 1-year median."),
+        "jp_heat_caption": (
+            "`stance` colors the price-vs-trend gap (green = below trend = cheap). This is valuation "
+            "*context* only — it was tested and adds no detectable 1-year signal (λ≈0), so it does "
+            "not drive the Japan forecast."),
         # calibration
         "cal_h": "Is the model honest?",
         "cal_intro": (
@@ -263,11 +269,12 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
         "sel_horizon": "予測期間",
         "sel_index": "市場",
         "jp_caveat": (
-            "🇯🇵 **日本版について(お読みください)。** 米国モデルと異なり、これは**長期バリュエーションの"
-            "背骨を持ちません**(無料の30年日本版CAPEが存在しないため)。ファンの*幅と形*は過去から較正"
-            "(GARCH+FHS)していますが、*中心*は中立な過去ドリフトのベースラインで、**バリュエーション"
-            "判断ではありません** — 特に1989年のバブル天井は**当てません**。中立ドリフトの周りの較正済み"
-            "不確実性帯として見てください(円建て・価格指数)。"),
+            "🇯🇵 **日本版について(お読みください)。** 無料の30年日本版CAPEが無いため、価格トレンドの"
+            "バリュエーション代替を作って**検証**しましたが、1年の予測力は検出されず(λ≈0、米国CAPEの1年と同じ)、"
+            "**ドリフトには使わず**ヒートマップに*コンテキスト*として表示しています。ファンの*幅と形*は過去から"
+            "較正(GARCH+FHS)していますが、*中心*は中立な過去ドリフトのベースラインで、**バリュエーション"
+            "判断ではありません** — 特に1989年のバブル天井は**当てません**。較正は近年の窓のみを使っています"
+            "(円建て・価格指数)。"),
         "jp_no_panel": "指標ヒートマップは米国のマクロ系列(FRB/Shiller)を使うため、日本指数では"
                        "まだ利用できません。",
         "jp_us_only": "このビューは1年の米国ウォークフォワード履歴を使うため、現状 S&P 500 のみ対応です。",
@@ -289,10 +296,10 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
             "**正直に言うと:** 歴史上、独立した{h}の窓は約**{neff}**個しかないので、この帯は較正済みの"
             "90%区間ではなく*目安*として見てください。"),
         "fan_info_long": (
-            "長期ビュー({h}):過去の90%帯のカバー率は {c90} ですが、これは独立した{h}の窓が約"
-            "**{neff}**個しかない上での数字で、正直に較正するには少なすぎます。中央値はバリュエーション"
-            "根拠の期待リターン、帯は目安として読んでください(90%保証ではありません)。CAPEが本当に"
-            "予測力を持つのはこの長期です(PLAN §A3)。"),
+            "長期ビュー({h}):過去の90%帯のカバー率は {c90}(**80%ブートストラップ信頼区間 {ci}**)ですが、"
+            "これは独立した{h}の窓が約**{neff}**個しかない上での数字で、正直に較正するには少なすぎます。"
+            "中央値はバリュエーション根拠の期待リターン、帯は目安として読んでください(90%保証ではありません)。"
+            "CAPEが本当に予測力を持つのはこの長期です(PLAN §A3)。"),
         "tabs": ["① ファンチャート", "② 指標ヒートマップ", "③ 較正",
                  "④ 答え合わせログ", "⑤ タイムマシン", "⑥ モデルの仕組み"],
         # fan chart
@@ -323,6 +330,9 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
             "`スタンス` = 符号付きzスコア(緑 = 現在は株式の追い風、赤 = 逆風)。セルにカーソルを"
             "合わせると詳細が出ます。CAPE が過去最高水準の順位にあることが最大の警戒材料ですが、"
             "バリュエーションは*長期*のシグナルで、1年の中央値よりも分布の形を左右します。"),
+        "jp_heat_caption": (
+            "`スタンス` は価格とトレンドの乖離を着色(緑=トレンド下=割安)。これはバリュエーションの"
+            "*コンテキスト*のみで、検証の結果1年シグナルは検出されず(λ≈0)、日本の予測には使っていません。"),
         # calibration
         "cal_h": "このモデルは正直か?",
         "cal_intro": (
@@ -483,6 +493,7 @@ IND_LABEL = {
     "BAMLH0A0HYM2": {"en": "High-yield credit spread", "ja": "ハイイールド債スプレッド"},
     "UNRATE": {"en": "Unemployment rate", "ja": "失業率"},
     "INDPRO": {"en": "Industrial production (YoY)", "ja": "鉱工業生産(前年比)"},
+    "JP_TREND_GAP": {"en": "Price vs 20y trend", "ja": "20年トレンドからの乖離"},
 }
 IND_HELP = {
     "shiller_CAPE": {
@@ -512,6 +523,9 @@ IND_HELP = {
     "INDPRO": {
         "en": "Industrial production, year-over-year %. Negative = industrial contraction.",
         "ja": "鉱工業生産の前年比%。マイナス=製造業の縮小。"},
+    "JP_TREND_GAP": {
+        "en": "How far the Nikkei sits above/below its rolling 20-year price trend (negative = above trend = expensive). A price-only valuation proxy — tested for 1-year predictive power, none detected (λ≈0), so it's shown as context, not used in the forecast drift.",
+        "ja": "日経が20年の価格トレンドからどれだけ上/下にあるか(マイナス=トレンド超=割高)。価格のみのバリュエーション代替で、1年予測力を検証した結果シグナルは検出されず(λ≈0)、ドリフトには使わずコンテキストとして表示。"},
 }
 CASE_LABEL = {
     "Dot-com peak (Dec 1999)": {"en": "Dot-com peak (Dec 1999)", "ja": "ITバブル天井(1999年12月)"},
@@ -575,7 +589,10 @@ idx_obj = indices_obj[idx_key]
 HORIZONS_AVAIL = idx_obj["horizons"]
 spot = idx_obj["spot"]
 indicators_data = idx_obj["indicators"]
-is_japan = bool(idx_obj.get("no_valuation"))
+is_japan = idx_key != "SP500"
+# per-index answer-key history + case studies (fall back to the legacy flat mirror)
+hist_sel = (hist.get("indices", {}).get(idx_key) if isinstance(hist.get("indices"), dict) else None) or hist
+cs_data = (HORIZONS_AVAIL.get("12mo", {}) or {}).get("case_studies") or fc.get("case_studies", [])
 
 hz_keys = list(HORIZONS_AVAIL.keys())
 hz_default = "12mo" if "12mo" in hz_keys else hz_keys[0]
@@ -632,7 +649,10 @@ with tab1:
         fig.update_yaxes(type="log")
     st.plotly_chart(fig, use_container_width=True)
     if is_long:
-        st.warning(t("fan_info_long", h=hlabel, neff=cal.get("n_eff", "?"), c90=f"{cal['cover90']:.0%}"))
+        _ci = cal.get("cover90_ci")
+        _ci_s = f"{_ci[0]:.0%}–{_ci[1]:.0%}" if _ci else "—"
+        st.warning(t("fan_info_long", h=hlabel, neff=cal.get("n_eff", "?"),
+                     c90=f"{cal['cover90']:.0%}", ci=_ci_s))
     else:
         st.info(t("fan_info", w0=cal["window"][0], w1=cal["window"][1], n=cal["n"],
                   c80=f"{cal['cover80']:.0%}", c90=f"{cal['cover90']:.0%}"))
@@ -671,7 +691,7 @@ with tab2:
             "stance": st.column_config.NumberColumn(t("col_stance"), help=t("col_stance_help")),
             "help": st.column_config.TextColumn(t("col_help"), width="large"),
         })
-    st.caption(t("heat_caption"))
+    st.caption(t("jp_heat_caption") if is_japan else t("heat_caption"))
 
 # ---------------------------------------------------------------- calibration
 with tab3:
@@ -697,12 +717,9 @@ with tab3:
 
 # ---------------------------------------------------------------- answer-key
 with tab4:
-  if is_japan:
-    st.info(t("jp_us_only"))
-  else:
     st.subheader(t("ak_h"))
-    h = pd.DataFrame(hist["records"])
-    st.write(t("ak_intro", n=hist["n"], hit=f"{hist['hit_rate_90']:.0%}"))
+    h = pd.DataFrame(hist_sel["records"])
+    st.write(t("ak_intro", n=hist_sel["n"], hit=f"{hist_sel['hit_rate_90']:.0%}"))
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(x=h["origin"], y=h["fc_hi90"], line=dict(width=0), showlegend=False, hoverinfo="skip"))
     fig2.add_trace(go.Scatter(x=h["origin"], y=h["fc_lo90"], fill="tonexty", fillcolor="rgba(31,119,180,0.15)",
@@ -717,7 +734,7 @@ with tab4:
 
     st.subheader(t("cs_h"))
     st.write(t("cs_intro"))
-    cs = pd.DataFrame(fc.get("case_studies", []))
+    cs = pd.DataFrame(cs_data)
     if not cs.empty:
         cols = st.columns(len(cs))
         for col, (_, r) in zip(cols, cs.iterrows()):
@@ -728,19 +745,17 @@ with tab4:
                        t("cs_fcmed", x=f"{((r['fc_median']/r['spot'])-1)*100:+.0f}"))
             col.caption(t("cs_made", lo=f"{r['fc_lo90']:,.0f}", hi=f"{r['fc_hi90']:,.0f}",
                           realized=f"{r['realized']:,.0f}", verdict=verdict))
-        st.caption(t("cs_caption"))
+        if not is_japan:
+            st.caption(t("cs_caption"))
     cols_order = ["origin", "spot", "fc_median", "fc_lo90", "fc_hi90", "realized", "realized_ret_pct", "in90"]
     st.dataframe(h[cols_order].rename(columns=T[L]["tbl"]).iloc[::-1],
                  use_container_width=True, hide_index=True)
 
 # ---------------------------------------------------------------- time machine
 with tab5:
-  if is_japan:
-    st.info(t("jp_us_only"))
-  else:
     st.subheader(t("tm_h"))
     st.write(t("tm_intro"))
-    hm = pd.DataFrame(hist["records"])
+    hm = pd.DataFrame(hist_sel["records"])
     if len(hm) < 2:
         st.info(t("tm_need"))
     else:
@@ -776,7 +791,7 @@ with tab5:
                            margin=dict(t=20), hovermode="x unified", legend=dict(orientation="h", y=-0.2))
         st.plotly_chart(figt, use_container_width=True)
 
-        if not in90 and str(r["origin"]).startswith("2008"):
+        if not is_japan and not in90 and str(r["origin"]).startswith("2008"):
             st.warning(t("tm_caption_gfc"))   # the Jan-2008 origin fell ~37% into the GFC
         elif in90:
             st.success(t("tm_caption_in"))

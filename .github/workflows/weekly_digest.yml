@@ -1,0 +1,28 @@
+name: weekly-digest
+
+# Posts a short S&P 500 summary to a Discord channel once a week
+# (Saturday 13:00 UTC, after the Friday US close and the Saturday daily refresh).
+#
+# One-time setup by the repo owner:
+#   1. In Discord: Server Settings → Integrations → Webhooks → New Webhook → copy URL
+#   2. In GitHub: Settings → Secrets and variables → Actions → New repository secret
+#        name  = DISCORD_WEBHOOK_URL
+#        value = <the webhook URL>
+#   3. (optional) add a repository *variable* APP_URL = your Streamlit app link
+# Until the secret exists the job runs harmlessly (digest.py just prints the message).
+# To switch channels (LINE/Slack/email) change only the post() call in digest.py.
+on:
+  schedule:
+    - cron: "0 13 * * 6"
+  workflow_dispatch: {}
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Post weekly digest
+        run: python3 digest.py            # stdlib only — no install step needed
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          APP_URL: ${{ vars.APP_URL }}
