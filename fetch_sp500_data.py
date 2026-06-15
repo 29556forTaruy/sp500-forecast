@@ -241,12 +241,14 @@ def fetch_fred() -> pd.DataFrame:
 
 # -------------------------------------------------------------- yfinance
 
-def fetch_spx() -> pd.DataFrame:
+def _fetch_index(ticker: str, min_year: int) -> pd.DataFrame:
+    """Daily OHLCV for an index via yfinance (unadjusted). Handles the MultiIndex
+    columns newer yfinance returns even for a single ticker (CLAUDE.md trap #9)."""
     import yfinance as yf
 
-    df = yf.download("^GSPC", period="max", auto_adjust=False, progress=False)
+    df = yf.download(ticker, period="max", auto_adjust=False, progress=False)
     if df is None or len(df) == 0:
-        df = yf.Ticker("^GSPC").history(period="max", auto_adjust=False)
+        df = yf.Ticker(ticker).history(period="max", auto_adjust=False)
     if isinstance(df.columns, pd.MultiIndex):  # newer yfinance: (field, ticker)
         df.columns = df.columns.get_level_values(0)
     df.index = pd.DatetimeIndex(df.index).tz_localize(None)
@@ -255,8 +257,20 @@ def fetch_spx() -> pd.DataFrame:
           .reset_index()
           .rename(columns={"Date": "date", "index": "date"}))
     df = df.dropna(subset=["close"]).sort_values("date").reset_index(drop=True)
-    assert df["date"].iloc[0].year <= 1928, "^GSPC history should start by 1928"
+    assert df["date"].iloc[0].year <= min_year, f"{ticker} history should start by {min_year}"
     return df
+
+
+def fetch_spx() -> pd.DataFrame:
+    return _fetch_index("^GSPC", 1928)
+
+
+def fetch_nikkei() -> pd.DataFrame:
+    """Nikkei 225 (^N225), the deepest free Japanese index (1965-). In JPY — do NOT
+    FX-convert (the model is a price-index return model). NOTE: Yahoo carries only
+    the CLOSE for the older era (High=Low=Close, Volume=0); fine for the month-end
+    close the model uses, but do not derive ranges/volume from the old rows."""
+    return _fetch_index("^N225", 1966)
 
 
 # ---------------------------------------------------------------- pivots
@@ -338,6 +352,19 @@ def main() -> None:
         spx = fetch_spx()
         spx.to_csv(spx_path, index=False)
     print(f"  -> spx_daily.csv {spx.shape}, last={spx['date'].max().date()} close={spx['close'].iloc[-1]:.2f}")
+
+    print("[2b/5] ^N225 (Nikkei 225) daily via yfinance ...")
+    nk_path = OUT / "nikkei_daily.csv"
+    if cached_today(nk_path):
+        print("  using today's cached copy")
+    else:
+        try:
+            nikkei = fetch_nikkei()
+            nikkei.to_csv(nk_path, index=False)
+            print(f"  -> nikkei_daily.csv {nikkei.shape}, last={nikkei['date'].max().date()} "
+                  f"close={nikkei['close'].iloc[-1]:.2f}")
+        except Exception as e:  # never let the secondary index break the US pipeline
+            print(f"  !! Nikkei fetch failed ({e}); keeping any existing nikkei_daily.csv")
 
     print("[3/5] FRED (14 series) ...")
     fred = fetch_fred()

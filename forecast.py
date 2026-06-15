@@ -207,6 +207,106 @@ def case_studies(d, realized, quant, model, p0_series):
     return rows
 
 
+def japan_index_block(nk):
+    """Nikkei 225 (Japan): the SAME GARCH+FHS distribution engine, but a NEUTRAL
+    drift — the point-in-time expanding mean of past H-month returns — because there
+    is no free long Japanese CAPE to anchor a valuation drift. This is the honest
+    'random-walk-with-historical-drift' baseline (PLAN §11/§12 found US CAPE adds ~0
+    at 1y anyway). Distribution-only, core horizons (3/6/12m). It will NOT have
+    called the 1989 bubble top — surfaced as a caveat in the app."""
+    mser = nk.set_index("date")["close"].resample("ME").last().dropna()
+    df = pd.DataFrame({"date": mser.index, "close": mser.to_numpy()})
+    df["log_p"] = np.log(df["close"]); df["r_m"] = df["log_p"].diff()
+    rm = df["r_m"].to_numpy()
+    raw_s = {"const": pd.Series(vol_raw_const(rm), index=df["date"]),
+             "ewma": pd.Series(vol_raw_ewma(rm), index=df["date"]),
+             "garch": pd.Series(vol_raw_garch(rm), index=df["date"])}
+    P0 = float(df["close"].iloc[-1])
+    n = len(df)
+    hblocks = {}
+    for spec in [s for s in HORIZONS if s["tier"] == "core"]:
+        H = spec["H"]; min_cal = spec["min_cal"]; key = spec["key"]
+        fwd = (df["log_p"].shift(-H) - df["log_p"]).to_numpy()
+        mu_full = np.full(n, np.nan)                 # expanding-mean (rw) drift, point-in-time
+        for i in range(n):
+            jmax = i - H
+            if jmax < 0:
+                continue
+            vals = fwd[0:jmax + 1]; vals = vals[~np.isnan(vals)]
+            if len(vals) >= 120:
+                mu_full[i] = vals.mean()
+        pos = np.where(~np.isnan(mu_full) & ~np.isnan(fwd))[0]
+        if len(pos) == 0:
+            continue
+        didx = pd.DatetimeIndex(df["date"].iloc[pos])
+        mu = mu_full[pos]; realized = fwd[pos]; m_ = len(pos)
+        models = ["const", "ewma", "garch"]
+        sig_raw = {mm: np.sqrt(H * raw_s[mm].reindex(didx).to_numpy()) for mm in models}
+        quant = {mm: np.full((m_, len(QGRID)), np.nan) for mm in models}
+        sigma_cal = {mm: np.full(m_, np.nan) for mm in models}
+        pit = {mm: np.full(m_, np.nan) for mm in models}
+        for i in range(m_):
+            done = np.arange(0, max(i - H + 1, 0))
+            if len(done) < min_cal:
+                continue
+            resid_done = realized[done] - mu[done]; var_done = resid_done ** 2
+            for mm in models:
+                sr_i = sig_raw[mm][i]
+                if np.isnan(sr_i):
+                    continue
+                base = sig_raw[mm][done]; ok = ~np.isnan(base)
+                if ok.sum() < min_cal:
+                    continue
+                sigma_cal[mm][i] = np.sqrt(np.mean(var_done[ok]) / np.mean(base[ok] ** 2)) * sr_i
+            for mm in models:
+                s12 = sigma_cal[mm][i]
+                if np.isnan(s12):
+                    continue
+                scal = sigma_cal[mm][done]; zok = ~np.isnan(scal) & (scal > 0)
+                if zok.sum() < min_cal:
+                    continue
+                z = resid_done[zok] / scal[zok]
+                quant[mm][i] = mu[i] + s12 * np.quantile(z, QGRID)
+                pit[mm][i] = float(np.mean(z <= (realized[i] - mu[i]) / s12))
+        valid = {mm: ~np.isnan(quant[mm][:, 0]) for mm in models}
+        common = np.logical_and.reduce([valid[mm] for mm in models])
+        if common.sum() == 0:
+            continue
+        cov = calib_metrics(realized, quant["garch"], pit["garch"], QGRID, common)
+        pit_g = pit["garch"][common]; pit_g = pit_g[~np.isnan(pit_g)]
+        pit_counts, _ = np.histogram(pit_g, bins=10, range=(0, 1))
+        n_eff = max(1, int(common.sum() / H))
+        # latest live: rw-drift = expanding mean over all completed windows; garch σ + FHS pool
+        mu_L = float(np.nanmean(fwd))
+        sig_raw_L = float(np.sqrt(H * raw_s["garch"].iloc[-1]))
+        sr_done_all = np.sqrt(H * raw_s["garch"].reindex(didx).to_numpy())
+        resid = realized - mu; mok = ~np.isnan(sr_done_all)
+        kfac = float(np.sqrt(np.mean(resid[mok] ** 2) / np.mean(sr_done_all[mok] ** 2)))
+        sigma_L = kfac * sig_raw_L
+        cs = sigma_cal["garch"]; zok = ~np.isnan(cs) & (cs > 0); zpool = resid[zok] / cs[zok]
+        months, bands, q12 = fan_from_fhs(mu_L, sigma_L, zpool, P0, H=H)
+        hblocks[key] = {
+            "horizon_months": H, "tier": "core",
+            "model": {"drift": "neutral drift (historical mean, no valuation timing)", "vol": "garch",
+                      "shape": "filtered historical simulation",
+                      "mu_log": round(mu_L, 4), "sigma": round(sigma_L, 4)},
+            "return_quantiles_pct": {str(q): round((np.exp(mu_L + sigma_L * np.quantile(zpool, q)) - 1) * 100, 1) for q in QS},
+            "price_quantiles": {str(q): round(v, 1) for q, v in q12.items()},
+            "fan_path": {"months": months.tolist(),
+                         **{f"q{int(q*100):02d}": [round(x, 1) for x in bands[q]] for q in QS}},
+            "calibration": {"window": [str(didx[common].min().date()), str(didx[common].max().date())],
+                            "n": int(common.sum()), "n_eff": n_eff,
+                            "cover50": round(cov["cover_50"], 3), "cover80": round(cov["cover_80"], 3),
+                            "cover90": round(cov["cover_90"], 3), "pit_ks": round(cov["pit_ks"], 3),
+                            "pit_hist": pit_counts.tolist(),
+                            "note": "walk-forward calibrated; neutral (no-valuation) drift"},
+        }
+        print(f"  [N225 {key:5s}] n={int(common.sum()):4d} n_eff={n_eff:3d}  "
+              f"median {(np.exp(mu_L) - 1) * 100:+6.1f}%  cover90={cov['cover_90']:.2f}")
+    return {"label": "日経225 / Nikkei 225", "spot": round(P0, 1), "indicators": [],
+            "no_valuation": True, "horizons": hblocks}
+
+
 def main():
     APP.mkdir(exist_ok=True)
     print("multi-horizon engine: features + monthly vol models (fit once) ...")
@@ -289,12 +389,21 @@ def main():
         print(f"  [{key:5s}] n={int(common.sum()):4d} n_eff={n_eff:3d}  "
               f"median {(np.exp(mu_L) - 1) * 100:+6.1f}%  cover90={cov['cover_90']:.2f}  tier={spec['tier']}")
 
+    indices = {"SP500": {"label": "S&P 500", "spot": round(P0_top, 1),
+                         "indicators": indicators, "horizons": blocks}}
+    nk_path = OUT / "nikkei_daily.csv"
+    if nk_path.exists():
+        try:
+            print("Nikkei 225 (distribution-only, neutral drift) ...")
+            indices["N225"] = japan_index_block(pd.read_csv(nk_path, parse_dates=["date"]))
+        except Exception as e:  # never let the secondary index break the US product
+            print(f"  !! Japan block failed ({e}); shipping US only")
+
     forecast = {
         "schema_version": 2,
         "asof": asof,
         "default": {"index": "SP500", "horizon": "12mo"},
-        "indices": {"SP500": {"label": "S&P 500", "spot": round(P0_top, 1),
-                              "indicators": indicators, "horizons": blocks}},
+        "indices": indices,
         # ---- back-compat top-level mirror (the validated 1-year flat schema) ----
         "spot": round(P0_top, 1),
         "horizon_months": 12,

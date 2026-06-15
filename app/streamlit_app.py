@@ -47,6 +47,18 @@ T = {
         "m_range90": "90% range",
         "m_range50": "50% range",
         "sel_horizon": "Horizon",
+        "sel_index": "Market",
+        "jp_caveat": (
+            "🇯🇵 **Japan model — read this.** Unlike the US model, this has **no long-run "
+            "valuation backbone**: there is no free 30-year Japanese CAPE. The fan's *width and "
+            "shape* are calibrated from history (GARCH + FHS), but the *center* is a neutral "
+            "historical-drift baseline, **not** a valuation call — in particular it would **not** "
+            "have called the 1989 bubble top. Read it as a calibrated uncertainty band around a "
+            "neutral drift (in JPY, price index)."),
+        "jp_no_panel": "The indicator heatmap uses US macro series (Fed / Shiller) and isn't "
+                       "available for the Japan index yet.",
+        "jp_us_only": "This view uses the 1-year US walk-forward history and is available for "
+                      "S&P 500 only for now.",
         "m_median_h": "{h} median",
         "plain": (
             "**Plain English:** {h} from now the model's *typical* outcome is **{rmed}%** "
@@ -55,6 +67,10 @@ T = {
             "because crashes drag the *mean* down — most periods are modestly up, a few are sharply "
             "down. Valuation (CAPE) is historically extreme, which lowers the *mean* but barely "
             "moves this median; it mainly fattens the downside."),
+        "plain_jp": (
+            "**Plain English:** {h} from now the model's *typical* outcome is **{rmed}%** "
+            "(≈ {pmed}), with a 1-in-2 chance between **{r25}%** and **{r75}%**, and a 9-in-10 "
+            "chance between **{r05}%** and **{r95}%** (neutral drift; no valuation tilt — see above)."),
         "plain_long": (
             "**Plain English:** over the next **{h}**, valuation finally does the heavy lifting — "
             "historically CAPE explains a large share of long-run returns (vs almost nothing at 1 "
@@ -245,6 +261,16 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
         "m_range90": "90%レンジ",
         "m_range50": "50%レンジ",
         "sel_horizon": "予測期間",
+        "sel_index": "市場",
+        "jp_caveat": (
+            "🇯🇵 **日本版について(お読みください)。** 米国モデルと異なり、これは**長期バリュエーションの"
+            "背骨を持ちません**(無料の30年日本版CAPEが存在しないため)。ファンの*幅と形*は過去から較正"
+            "(GARCH+FHS)していますが、*中心*は中立な過去ドリフトのベースラインで、**バリュエーション"
+            "判断ではありません** — 特に1989年のバブル天井は**当てません**。中立ドリフトの周りの較正済み"
+            "不確実性帯として見てください(円建て・価格指数)。"),
+        "jp_no_panel": "指標ヒートマップは米国のマクロ系列(FRB/Shiller)を使うため、日本指数では"
+                       "まだ利用できません。",
+        "jp_us_only": "このビューは1年の米国ウォークフォワード履歴を使うため、現状 S&P 500 のみ対応です。",
         "m_median_h": "{h}後の中央値",
         "plain": (
             "**ひとことで言うと:** {h}後のモデルの*典型的な*結果は **{rmed}%**(≈ {pmed})。"
@@ -252,6 +278,10 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
             "中央値が平均より上にあるのは、暴落が*平均*を押し下げるから — 多くの期間は緩やかな上昇で、"
             "少数の期間に大きく下げます。バリュエーション(CAPE)は歴史的に極端な水準で、これは*平均*を"
             "下げますがこの中央値はほとんど動かさず、主に下振れの裾を太くします。"),
+        "plain_jp": (
+            "**ひとことで言うと:** {h}後のモデルの*典型的な*結果は **{rmed}%**(≈ {pmed})。"
+            "2回に1回は **{r25}%〜{r75}%**、10回に9回は **{r05}%〜{r95}%** の範囲に収まる見込みです"
+            "(中立ドリフト・バリュエーション傾斜なし — 上記参照)。"),
         "plain_long": (
             "**ひとことで言うと:** これからの**{h}**では、バリュエーションがついに主役になります — "
             "CAPE は長期リターンの大きな部分を説明します(1年ではほぼ無力)。モデルの中心的な見立ては"
@@ -433,9 +463,11 @@ ln P̂(t+12) = ln P_t + g_t + λ · (ln CAPE*_t − ln CAPE_t)
 # values that arrive from forecast.json in English → localized display labels
 MODEL_LABEL = {
     "en": {"Level-0 structural anchor (log PERxEPS)": "Level-0 structural anchor (log PER×EPS)",
-           "garch": "GARCH", "filtered historical simulation": "filtered historical simulation"},
+           "garch": "GARCH", "filtered historical simulation": "filtered historical simulation",
+           "neutral drift (historical mean, no valuation timing)": "neutral drift (historical mean, no valuation timing)"},
     "ja": {"Level-0 structural anchor (log PERxEPS)": "Level 0 構造アンカー(対数 PER×EPS)",
-           "garch": "GARCH", "filtered historical simulation": "フィルタード・ヒストリカル・シミュレーション"},
+           "garch": "GARCH", "filtered historical simulation": "フィルタード・ヒストリカル・シミュレーション",
+           "neutral drift (historical mean, no valuation timing)": "中立ドリフト(過去平均・バリュエーション傾斜なし)"},
 }
 DIRECTION_LABEL = {
     "en": {"bullish": "bullish", "bearish": "bearish", "neutral": "neutral"},
@@ -522,18 +554,29 @@ def hz_label(k):
 
 # resolve schema: v2 nests indices→horizons; gracefully fall back to the legacy flat file
 if fc.get("schema_version", 1) >= 2:
-    _idx = fc["indices"]["SP500"]
-    HORIZONS_AVAIL = _idx["horizons"]
-    spot = _idx["spot"]
-    indicators_data = _idx["indicators"]
+    indices_obj = fc["indices"]
+    idx_default = fc.get("default", {}).get("index") or next(iter(indices_obj))
 else:
-    HORIZONS_AVAIL = {"12mo": fc}
-    spot = fc["spot"]
-    indicators_data = fc["indicators"]
+    indices_obj = {"SP500": {"label": "S&P 500", "spot": fc["spot"],
+                             "indicators": fc["indicators"], "horizons": {"12mo": fc}}}
+    idx_default = "SP500"
 
 st.title(t("title"))
 
-# horizon selector — drives every tab; default 1 year
+# market selector (shown only when >1 index) + horizon selector — both drive every tab
+idx_keys = list(indices_obj.keys())
+if len(idx_keys) > 1:
+    _isel = st.segmented_control(t("sel_index"), [indices_obj[k]["label"] for k in idx_keys],
+                                 default=indices_obj[idx_default]["label"], selection_mode="single")
+    idx_key = next((k for k in idx_keys if indices_obj[k]["label"] == _isel), idx_default)
+else:
+    idx_key = idx_default
+idx_obj = indices_obj[idx_key]
+HORIZONS_AVAIL = idx_obj["horizons"]
+spot = idx_obj["spot"]
+indicators_data = idx_obj["indicators"]
+is_japan = bool(idx_obj.get("no_valuation"))
+
 hz_keys = list(HORIZONS_AVAIL.keys())
 hz_default = "12mo" if "12mo" in hz_keys else hz_keys[0]
 if len(hz_keys) > 1:
@@ -556,16 +599,17 @@ c2.metric(t("m_median_h", h=hlabel), f"{q['0.5']:,.0f}", f"{rq['0.5']:+.1f}%")
 c3.metric(t("m_range90"), f"{q['0.05']:,.0f} – {q['0.95']:,.0f}")
 c4.metric(t("m_range50"), f"{q['0.25']:,.0f} – {q['0.75']:,.0f}")
 
-if is_long:
+rkw = dict(rmed=f"{rq['0.5']:+.1f}", pmed=f"{q['0.5']:,.0f}", r25=f"{rq['0.25']:+.1f}",
+           r75=f"{rq['0.75']:+.1f}", r05=f"{rq['0.05']:+.1f}", r95=f"{rq['0.95']:+.1f}")
+if is_japan:
+    st.warning(t("jp_caveat"))
+    st.markdown(t("plain_jp", h=hlabel, **rkw))
+elif is_long:
     lr = leaf.get("long_run", {})
-    st.markdown(t("plain_long", h=hlabel,
-                  ann=f"{lr.get('expected_annualized_pct', float('nan')):+.1f}",
+    st.markdown(t("plain_long", h=hlabel, ann=f"{lr.get('expected_annualized_pct', float('nan')):+.1f}",
                   rmed=f"{rq['0.5']:+.1f}", neff=cal.get("n_eff", "?")))
 else:
-    st.markdown(t("plain", h=hlabel,
-                  rmed=f"{rq['0.5']:+.1f}", pmed=f"{q['0.5']:,.0f}",
-                  r25=f"{rq['0.25']:+.1f}", r75=f"{rq['0.75']:+.1f}",
-                  r05=f"{rq['0.05']:+.1f}", r95=f"{rq['0.95']:+.1f}"))
+    st.markdown(t("plain", h=hlabel, **rkw))
 
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(t("tabs"))
 
@@ -595,6 +639,9 @@ with tab1:
 
 # ---------------------------------------------------------------- heatmap
 with tab2:
+  if not indicators_data:
+    st.info(t("jp_no_panel"))
+  else:
     df = pd.DataFrame(indicators_data)
     def stance(r):
         s = r["z_10y"]
@@ -650,6 +697,9 @@ with tab3:
 
 # ---------------------------------------------------------------- answer-key
 with tab4:
+  if is_japan:
+    st.info(t("jp_us_only"))
+  else:
     st.subheader(t("ak_h"))
     h = pd.DataFrame(hist["records"])
     st.write(t("ak_intro", n=hist["n"], hit=f"{hist['hit_rate_90']:.0%}"))
@@ -685,6 +735,9 @@ with tab4:
 
 # ---------------------------------------------------------------- time machine
 with tab5:
+  if is_japan:
+    st.info(t("jp_us_only"))
+  else:
     st.subheader(t("tm_h"))
     st.write(t("tm_intro"))
     hm = pd.DataFrame(hist["records"])
