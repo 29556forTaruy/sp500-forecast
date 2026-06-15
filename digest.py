@@ -19,7 +19,7 @@ import urllib.request
 from pathlib import Path
 
 APP = Path(__file__).resolve().parent / "app"
-DEFAULT_APP_URL = "https://sp500-forecast-kgqj947srjt55eyvzjqott.streamlit.app"
+DEFAULT_APP_URL = "https://sp500-forecast-4xldbbjrzkvbbxpcmhblsp.streamlit.app"
 
 
 def build_message() -> str:
