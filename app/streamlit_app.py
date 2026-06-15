@@ -17,6 +17,16 @@ import streamlit as st
 APP = Path(__file__).resolve().parent
 st.set_page_config(page_title="S&P 500 forecast / 予測", page_icon="📈", layout="wide")
 
+# App-feel polish (also helps the iOS "Add to Home Screen" PWA experience):
+# hide Streamlit's menu/footer chrome and tighten the top padding for mobile.
+st.markdown(
+    """<style>
+      #MainMenu, footer {visibility: hidden;}
+      .block-container {padding-top: 2.2rem; padding-bottom: 2.5rem;}
+    </style>""",
+    unsafe_allow_html=True,
+)
+
 
 @st.cache_data
 def load():
@@ -44,7 +54,7 @@ T = {
             "down. Valuation (CAPE) is historically extreme, which lowers the *mean* but barely "
             "moves the 1-year median; it mainly fattens the downside."),
         "tabs": ["① Fan chart", "② Indicator heatmap", "③ Calibration",
-                 "④ Answer-key log", "⑤ How it works"],
+                 "④ Answer-key log", "⑤ Time machine", "⑥ How it works"],
         # fan chart
         "fan_band_outer": "5–95%",
         "fan_band_inner": "25–75%",
@@ -179,6 +189,30 @@ day**.
 One-year equity returns are mostly **unpredictable**. No valuation or volatility model foresaw 2008.
 The value here is an **honest distribution with calibrated uncertainty**, not a crystal ball.
 """,
+        # time machine (historical replay)
+        "tm_h": "Time machine — what the model said, before it knew",
+        "tm_intro": "Pick any past date. See the fan the model drew **then** (using only data "
+                    "available at the time) and where the index actually landed a year later. "
+                    "Green = inside the 90% band, red = an honest miss.",
+        "tm_slider": "Pick a past forecast date",
+        "tm_need": "Not enough realized history yet for this view.",
+        "tm_metric_fc": "forecast median (then)",
+        "tm_metric_actual": "actual (1y later)",
+        "tm_metric_verdict": "in 90% band?",
+        "tm_band90": "90% band (made then)",
+        "tm_band50": "50% band",
+        "tm_median": "forecast median",
+        "tm_real": "actual outcome",
+        "tm_x": "months after {origin}",
+        "tm_caption_in": "The outcome landed **inside** the band the model drew a year earlier — "
+                         "without knowing the future. That is what \"calibrated\" means.",
+        "tm_caption_out": "The outcome fell **outside** the band — the model was honestly wrong "
+                          "here. These misses are kept visible on purpose (PLAN §0).",
+        "tm_caption_gfc": "Early 2008: the model forecast a roughly normal year; the index then "
+                          "fell ~37% into the depths of the Global Financial Crisis. **No valuation "
+                          "or volatility model foresaw 2008** — the wide bands and this honest log "
+                          "exist precisely so the model never pretends otherwise.",
+        "pwa_hint": "📱 On iPhone: tap Share → \"Add to Home Screen\" to use this like an app.",
         # table column names (answer-key)
         "tbl": {"origin": "origin", "spot": "spot", "fc_median": "fc_median",
                 "fc_lo90": "fc_lo90", "fc_hi90": "fc_hi90", "realized": "realized",
@@ -198,7 +232,7 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
             "少数の年に大きく下げます。バリュエーション(CAPE)は歴史的に極端な水準で、これは*平均*を"
             "下げますが1年の中央値はほとんど動かさず、主に下振れの裾を太くします。"),
         "tabs": ["① ファンチャート", "② 指標ヒートマップ", "③ 較正",
-                 "④ 答え合わせログ", "⑤ モデルの仕組み"],
+                 "④ 答え合わせログ", "⑤ タイムマシン", "⑥ モデルの仕組み"],
         # fan chart
         "fan_band_outer": "5〜95%",
         "fan_band_inner": "25〜75%",
@@ -329,6 +363,30 @@ ln P̂(t+12) = ln P_t + g_t + λ · (ln CAPE*_t − ln CAPE_t)
 できませんでした。ここで価値があるのは**較正された不確実性を伴う正直な分布**であって、水晶玉では
 ありません。
 """,
+        # time machine (historical replay)
+        "tm_h": "タイムマシン — 未来を知る前にモデルが言ったこと",
+        "tm_intro": "過去の任意の時点を選んでください。モデルが**当時**(その時点で入手可能なデータだけで)"
+                    "描いたファンと、1年後に指数が実際どこへ着地したかが見えます。"
+                    "緑=90%帯の中、赤=正直な外し。",
+        "tm_slider": "過去の予測時点を選ぶ",
+        "tm_need": "このビューに必要な実績データがまだ足りません。",
+        "tm_metric_fc": "当時の予測中央値",
+        "tm_metric_actual": "実際(1年後)",
+        "tm_metric_verdict": "90%帯の中?",
+        "tm_band90": "90%帯(当時の予測)",
+        "tm_band50": "50%帯",
+        "tm_median": "予測中央値",
+        "tm_real": "実際の結果",
+        "tm_x": "{origin} からの経過月数",
+        "tm_caption_in": "結果は、1年前にモデルが未来を知らずに描いた帯の**中**に着地しました。"
+                         "これが「較正されている」ということです。",
+        "tm_caption_out": "結果は帯の**外**に出ました — ここでモデルは正直に外しました。"
+                          "こうした外しはあえて見せています(計画 §0)。",
+        "tm_caption_gfc": "2008年初:モデルはほぼ平常の年を予測しましたが、指数はその後 金融危機の"
+                          "底へ向けて約37%下落しました。**どんなバリュエーション/ボラモデルも"
+                          "2008年を予見できませんでした** — 広い帯とこの正直なログは、モデルが"
+                          "決してそれを取り繕わないために存在します。",
+        "pwa_hint": "📱 iPhoneでは:共有 →「ホーム画面に追加」でアプリのように使えます。",
         # table column names (answer-key)
         "tbl": {"origin": "時点", "spot": "現在値", "fc_median": "予測中央値",
                 "fc_lo90": "予測下限(90%)", "fc_hi90": "予測上限(90%)", "realized": "実現値",
@@ -432,7 +490,7 @@ st.markdown(t("plain",
               r25=f"{rq['0.25']:+.1f}", r75=f"{rq['0.75']:+.1f}",
               r05=f"{rq['0.05']:+.1f}", r95=f"{rq['0.95']:+.1f}"))
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(t("tabs"))
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(t("tabs"))
 
 # ----------------------------------------------------------------- fan chart
 with tab1:
@@ -541,7 +599,55 @@ with tab4:
     st.dataframe(h[cols_order].rename(columns=T[L]["tbl"]).iloc[::-1],
                  use_container_width=True, hide_index=True)
 
-# ---------------------------------------------------------------- methodology
+# ---------------------------------------------------------------- time machine
 with tab5:
+    st.subheader(t("tm_h"))
+    st.write(t("tm_intro"))
+    hm = pd.DataFrame(hist["records"])
+    if len(hm) < 2:
+        st.info(t("tm_need"))
+    else:
+        origins = hm["origin"].tolist()
+        sel = st.select_slider(t("tm_slider"), options=origins, value=origins[-1])
+        r = hm[hm["origin"] == sel].iloc[0]
+        spot_v = float(r["spot"]); realized_v = float(r["realized"]); in90 = bool(r["in90"])
+        ends = {"q05": float(r["fc_lo90"]), "q25": float(r.get("fc_lo50", r["fc_lo90"])),
+                "q50": float(r["fc_median"]), "q75": float(r.get("fc_hi50", r["fc_hi90"])),
+                "q95": float(r["fc_hi90"])}
+        mths = list(range(0, 13))
+        def cone(end): return [spot_v + (end - spot_v) * (mm / 12) ** 0.5 for mm in mths]
+
+        d1, d2, d3 = st.columns(3)
+        d1.metric(t("tm_metric_fc"), f"{ends['q50']:,.0f}", f"{(ends['q50']/spot_v-1)*100:+.1f}%")
+        d2.metric(t("tm_metric_actual"), f"{realized_v:,.0f}", f"{r['realized_ret_pct']:+.1f}%")
+        d3.metric(t("tm_metric_verdict"), "✅" if in90 else "❌")
+
+        figt = go.Figure()
+        figt.add_trace(go.Scatter(x=mths, y=cone(ends["q95"]), line=dict(width=0), showlegend=False, hoverinfo="skip"))
+        figt.add_trace(go.Scatter(x=mths, y=cone(ends["q05"]), fill="tonexty", fillcolor="rgba(31,119,180,0.13)",
+                                  line=dict(width=0), name=t("tm_band90")))
+        figt.add_trace(go.Scatter(x=mths, y=cone(ends["q75"]), line=dict(width=0), showlegend=False, hoverinfo="skip"))
+        figt.add_trace(go.Scatter(x=mths, y=cone(ends["q25"]), fill="tonexty", fillcolor="rgba(31,119,180,0.28)",
+                                  line=dict(width=0), name=t("tm_band50")))
+        figt.add_trace(go.Scatter(x=mths, y=cone(ends["q50"]), line=dict(color="#1f77b4", width=2, dash="dash"),
+                                  name=t("tm_median")))
+        figt.add_trace(go.Scatter(x=[12], y=[realized_v], mode="markers", name=t("tm_real"),
+                                  marker=dict(color="#2ca02c" if in90 else "#d62728", size=15,
+                                              symbol="diamond", line=dict(color="white", width=1))))
+        figt.add_hline(y=spot_v, line_dash="dot", line_color="grey")
+        figt.update_layout(height=420, xaxis_title=t("tm_x", origin=sel), yaxis_title=t("fan_y"),
+                           margin=dict(t=20), hovermode="x unified", legend=dict(orientation="h", y=-0.2))
+        st.plotly_chart(figt, use_container_width=True)
+
+        if not in90 and str(r["origin"]).startswith("2008"):
+            st.warning(t("tm_caption_gfc"))   # the Jan-2008 origin fell ~37% into the GFC
+        elif in90:
+            st.success(t("tm_caption_in"))
+        else:
+            st.error(t("tm_caption_out"))
+
+# ---------------------------------------------------------------- methodology
+with tab6:
     st.subheader(t("mth_h"))
     st.markdown(t("mth_body"))
+    st.caption(t("pwa_hint"))

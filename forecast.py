@@ -68,6 +68,8 @@ def build_history(d, realized, mu, quant, best_idx_model, P0_series, n_per_year=
     rows = []
     seen_years = set()
     qlo, qmd, qhi = 0, np.where(np.isclose(QGRID, 0.5))[0][0], len(QGRID) - 1  # 0.05,0.5,0.95
+    q25 = int(np.where(np.isclose(QGRID, 0.25))[0][0])  # inner 50% band for the time-machine fan
+    q75 = int(np.where(np.isclose(QGRID, 0.75))[0][0])
     for i in range(len(d)):
         y = dates[i].year
         if y in seen_years or np.isnan(quant[best_idx_model][i, 0]):
@@ -77,9 +79,12 @@ def build_history(d, realized, mu, quant, best_idx_model, P0_series, n_per_year=
         med = p0 * np.exp(quant[best_idx_model][i, qmd])
         lo = p0 * np.exp(quant[best_idx_model][i, qlo])
         hi = p0 * np.exp(quant[best_idx_model][i, qhi])
+        lo50 = p0 * np.exp(quant[best_idx_model][i, q25])
+        hi50 = p0 * np.exp(quant[best_idx_model][i, q75])
         realized_px = p0 * np.exp(realized[i])
         rows.append({"origin": str(dates[i].date()), "spot": round(p0, 1),
                      "fc_median": round(med, 1), "fc_lo90": round(lo, 1), "fc_hi90": round(hi, 1),
+                     "fc_lo50": round(lo50, 1), "fc_hi50": round(hi50, 1),
                      "realized": round(realized_px, 1),
                      "realized_ret_pct": round((np.exp(realized[i]) - 1) * 100, 1),
                      "in90": bool(lo <= realized_px <= hi)})
