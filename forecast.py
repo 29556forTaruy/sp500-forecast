@@ -113,7 +113,7 @@ def horizon_walk_forward(df, raw_s, spec):
     idx = d.index
     mu = d["fc_level0_est"].to_numpy(); realized = d["realized"].to_numpy()
     n = len(d)
-    models = ["const", "ewma", "garch"]
+    models = [m for m in ("const", "ewma", "garch", "vix") if m in raw_s]  # vix only when supplied (US)
     sig_raw = {m: np.sqrt(H * raw_s[m].reindex(idx).to_numpy()) for m in models}
     quant = {m: np.full((n, len(QGRID)), np.nan) for m in models}
     sigma_cal = {m: np.full(n, np.nan) for m in models}
@@ -412,6 +412,10 @@ def main():
              "garch": pd.Series(vol_raw_garch(rm), index=df["date"])}  # the expensive one, once
     master = pd.read_csv(OUT / "master_monthly.csv", parse_dates=["date"])
     indicators = indicator_panel(master)
+    # VIX (S&P 500 option-implied vol, 1990+) as a forward-looking vol model to TEST vs GARCH.
+    # VIX is annualized %; (VIX/100)^2/12 is the equivalent monthly variance for the √H machinery.
+    _vix = master.set_index("date")["VIXCLS"].reindex(df["date"]).to_numpy()
+    raw_s["vix"] = pd.Series((_vix / 100.0) ** 2 / 12.0, index=df["date"])
 
     blocks = {}
     mirror12 = None
@@ -483,6 +487,18 @@ def main():
                                 "note": "walk-forward calibrated; outer bands reliable"},
                 "case_studies": block["case_studies"],
             }
+        # VIX-vs-GARCH accuracy test (production stays GARCH; this is an honest diagnostic on the
+        # VIX-valid window, 1990+). Adopt VIX only if it clearly wins — reported in the app.
+        if "vix" in quant:
+            vwin = (~np.isnan(quant["vix"][:, 0])) & valid["garch"]
+            if vwin.sum() >= 24:
+                cg = calib_metrics(realized, quant["garch"], pit["garch"], QGRID, vwin)
+                cvx = calib_metrics(realized, quant["vix"], pit["vix"], QGRID, vwin)
+                block["vol_test"] = {
+                    "window": [str(dates[vwin].min().date()), str(dates[vwin].max().date())], "n": int(vwin.sum()),
+                    "garch_pinball": round(cg["pinball"], 4), "vix_pinball": round(cvx["pinball"], 4),
+                    "garch_cover90": round(cg["cover_90"], 3), "vix_cover90": round(cvx["cover_90"], 3),
+                    "winner": "garch" if cg["pinball"] <= cvx["pinball"] else "vix"}
         blocks[key] = block
         print(f"  [{key:5s}] n={int(common.sum()):4d} n_eff={n_eff:3d}  "
               f"median {(np.exp(mu_L) - 1) * 100:+6.1f}%  cover90={cov['cover_90']:.2f}  tier={spec['tier']}")

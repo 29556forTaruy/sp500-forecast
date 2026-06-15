@@ -166,6 +166,12 @@ T = {
                            "{h} windows in history, so these numbers carry a wide margin of error and "
                            "the PIT histogram is not meaningful at this sample size. Treat the {h} fan "
                            "as a valuation-based view, not a calibrated interval.",
+        "vol_test": "**VIX accuracy test:** the fan width was also estimated from VIX "
+                    "(option-implied vol) and scored walk-forward against GARCH on {w0}–{w1} "
+                    "(n={n}): GARCH pinball **{g}** vs VIX **{v}** (lower = better). {verdict}",
+        "vt_garch": "GARCH wins and is kept — VIX is nearly tied at short horizons but, being a "
+                    "30-day gauge, degrades at longer ones.",
+        "vt_vix": "VIX wins here and would sharpen the fan — flagged for adoption.",
         "pit_x": "PIT bucket (where the outcome fell in the forecast)",
         "pit_y": "count",
         "pit_ideal": "uniform (ideal)",
@@ -406,6 +412,11 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
                            "計算しており、歴史上の独立した{h}の窓は約**{neff}**個しかないため、これらの"
                            "数値は誤差が大きく、この標本サイズでは PIT ヒストグラムも意味を持ちません。"
                            "{h}のファンは較正済み区間ではなく、バリュエーション根拠の見立てとして扱ってください。",
+        "vol_test": "**VIX精度テスト:** ファン幅をVIX(オプション予想ボラ)からも推定し、{w0}〜{w1}"
+                    "(n={n})でGARCHとウォークフォワード比較: GARCH pinball **{g}** vs VIX **{v}**"
+                    "(小さいほど良い)。{verdict}",
+        "vt_garch": "GARCHの勝ちで採用継続 — VIXは短期ではほぼ互角ですが、30日指標のため長期で劣化します。",
+        "vt_vix": "ここではVIXの勝ちで、ファンを鋭くできます — 採用候補として記録。",
         "pit_x": "PIT バケット(結果が予測分布のどこに落ちたか)",
         "pit_y": "件数",
         "pit_ideal": "一様(理想)",
@@ -780,6 +791,11 @@ with tab3:
                            margin=dict(t=20), showlegend=False)
         st.plotly_chart(figp, use_container_width=True)
         st.caption(t("pit_caption", ideal=f"{ideal:.0f}", ks=cal["pit_ks"]))
+    vt = leaf.get("vol_test")
+    if vt:
+        verdict = t("vt_garch") if vt["winner"] == "garch" else t("vt_vix")
+        st.caption(t("vol_test", w0=vt["window"][0], w1=vt["window"][1], n=vt["n"],
+                     g=vt["garch_pinball"], v=vt["vix_pinball"], verdict=verdict))
 
 # ---------------------------------------------------------------- answer-key
 with tab4:
