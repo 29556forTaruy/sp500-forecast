@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 APP = Path(__file__).resolve().parent
-st.set_page_config(page_title="S&P 500 forecast / 予測", page_icon="📈", layout="wide")
+st.set_page_config(page_title="Market Fan", page_icon="📈", layout="wide")
 
 # App-feel polish (also helps the iOS "Add to Home Screen" PWA experience):
 # hide Streamlit's menu/footer chrome and tighten the top padding for mobile.
@@ -40,8 +40,14 @@ def load():
 # strings so the exact number formatting is identical across both languages.
 T = {
     "en": {
-        "title": "S&P 500 — probabilistic forecast",
-        "caption": "As of {asof} · spot {spot} · drift = {drift} · vol = {vol} · shape = {shape}",
+        "title": "Market Fan",
+        "tagline": "calibrated probability fan charts for equity indices",
+        "tab_compare": "⑦ Compare",
+        "cmp_h": "Compare markets",
+        "cmp_intro": "Both markets' 1-year fans, shown as % return from today so the scales line up "
+                     "(levels differ: S&P ≈ 7,600 vs Nikkei ≈ 66,000). Wider = more uncertain.",
+        "cmp_y": "return from today (%)",
+        "caption": "{index} · as of {asof} · spot {spot} · drift = {drift} · vol = {vol} · shape = {shape}",
         "m_spot": "Spot",
         "m_median": "12m median",
         "m_range90": "90% range",
@@ -260,8 +266,14 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
                 "realized_ret_pct": "realized %", "in90": "in90"},
     },
     "ja": {
-        "title": "S&P 500 — 確率予測",
-        "caption": "{asof} 時点 · 現在値 {spot} · ドリフト = {drift} · ボラ = {vol} · 形状 = {shape}",
+        "title": "マーケット・ファン",
+        "tagline": "株価指数の較正済み確率ファンチャート",
+        "tab_compare": "⑦ 市場比較",
+        "cmp_h": "市場を比較",
+        "cmp_intro": "両市場の1年ファンを、今日からのリターン%で重ねて表示(水準が違うため: "
+                     "S&P 約7,600 / 日経 約66,000)。幅が広いほど不確実。",
+        "cmp_y": "今日からのリターン(%)",
+        "caption": "{index} · {asof} 時点 · 現在値 {spot} · ドリフト = {drift} · ボラ = {vol} · 形状 = {shape}",
         "m_spot": "現在値",
         "m_median": "12ヶ月中央値",
         "m_range90": "90%レンジ",
@@ -576,6 +588,7 @@ else:
     idx_default = "SP500"
 
 st.title(t("title"))
+st.caption(t("tagline"))
 
 # market selector (shown only when >1 index) + horizon selector — both drive every tab
 idx_keys = list(indices_obj.keys())
@@ -607,7 +620,7 @@ q = leaf["price_quantiles"]; rq = leaf["return_quantiles_pct"]; cal = leaf["cali
 is_long = leaf.get("tier") == "long-run"
 hlabel = hz_label(hz)
 
-st.caption(t("caption", asof=fc["asof"], spot=f"{spot:,.0f}",
+st.caption(t("caption", index=idx_obj["label"], asof=fc["asof"], spot=f"{spot:,.0f}",
               drift=mlabel(m["drift"]), vol=mlabel(m["vol"]), shape=mlabel(m["shape"])))
 
 c1, c2, c3, c4 = st.columns(4)
@@ -628,7 +641,13 @@ elif is_long:
 else:
     st.markdown(t("plain", h=hlabel, **rkw))
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(t("tabs"))
+_tab_labels = list(t("tabs"))
+_show_compare = len(indices_obj) > 1
+if _show_compare:
+    _tab_labels.append(t("tab_compare"))
+_tabs = st.tabs(_tab_labels)
+tab1, tab2, tab3, tab4, tab5, tab6 = _tabs[:6]
+tab_cmp = _tabs[6] if _show_compare else None
 
 # ----------------------------------------------------------------- fan chart
 with tab1:
@@ -803,3 +822,27 @@ with tab6:
     st.subheader(t("mth_h"))
     st.markdown(t("mth_body"))
     st.caption(t("pwa_hint"))
+
+# ---------------------------------------------------------------- market compare
+if tab_cmp is not None:
+    with tab_cmp:
+        st.subheader(t("cmp_h"))
+        st.write(t("cmp_intro"))
+        cmp_hz = hz if all(hz in indices_obj[k]["horizons"] for k in indices_obj) else "12mo"
+        cmp_style = {"SP500": ("#1f77b4", "rgba(31,119,180,0.13)"),
+                     "N225": ("#d62728", "rgba(214,39,40,0.13)")}
+        def rpath(fp, s, qk): return [0.0] + [(v / s - 1) * 100 for v in fp[qk]]
+        figc = go.Figure()
+        for k, obj in indices_obj.items():
+            if cmp_hz not in obj["horizons"]:
+                continue
+            fpc = obj["horizons"][cmp_hz]["fan_path"]; sp = obj["spot"]; mo = [0] + fpc["months"]
+            line_c, fill_c = cmp_style.get(k, ("#888888", "rgba(136,136,136,0.13)"))
+            figc.add_trace(go.Scatter(x=mo, y=rpath(fpc, sp, "q95"), line=dict(width=0), showlegend=False, hoverinfo="skip"))
+            figc.add_trace(go.Scatter(x=mo, y=rpath(fpc, sp, "q05"), fill="tonexty", fillcolor=fill_c,
+                                      line=dict(width=0), name=f"{obj['label']} · {hz_label(cmp_hz)} (90%)"))
+            figc.add_trace(go.Scatter(x=mo, y=rpath(fpc, sp, "q50"), line=dict(color=line_c, width=2.5), showlegend=False))
+        figc.add_hline(y=0, line_dash="dot", line_color="grey")
+        figc.update_layout(height=460, xaxis_title=t("fan_x"), yaxis_title=t("cmp_y"),
+                           margin=dict(t=20), hovermode="x unified", legend=dict(orientation="h", y=-0.2))
+        st.plotly_chart(figc, use_container_width=True)
