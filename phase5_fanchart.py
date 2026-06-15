@@ -242,10 +242,11 @@ def latest_forecast(df, d, realized, mu, sigma_cal, best):
     return mu_L, sigma_L, z, P0, str(f["date"].iloc[-1].date())
 
 
-def fan_from_fhs(mu12, sigma12, z, P0):
-    """Path bands consistent with the validated 12m FHS distribution: at month k,
-    band_α = P0·exp(drift·k/12 + (σ·z_α)·√(k/12)); at k=12 it reproduces the FHS
-    12m quantiles exactly. The median uses z's empirical median (≠0 under skew)."""
+def fan_from_fhs(mu12, sigma12, z, P0, H=H):
+    """Path bands consistent with the validated H-month FHS distribution: at month k,
+    band_α = P0·exp(drift·k/H + (σ·z_α)·√(k/H)); at k=H it reproduces the FHS
+    terminal quantiles exactly. The median uses z's empirical median (≠0 under skew).
+    H defaults to 12 (byte-identical to the validated 1-year fan)."""
     qs = [0.05, 0.25, 0.5, 0.75, 0.95]
     zq = {q: np.quantile(z, q) for q in qs}
     months = np.arange(1, H + 1)

@@ -1,16 +1,22 @@
 #!/usr/bin/env python
-"""Phase 6/7 — daily forecast engine.
+"""Phase 6/7 — daily forecast engine (multi-horizon).
 
 Ties the validated ladder together (Level-0 drift + Level-5 GARCH/FHS distribution,
 PLAN.md §11/§13) and emits the day's forecast as JSON for the app / daily batch.
-This is the production output schema (PLAN §7.3): latest fan distribution, the
-indicator panel (value + z-score + percentile, for the heatmap), and a backfilled
-prediction-vs-realized history (the answer-key log, PLAN §0 — populated from the
-walk-forward backtest so the app has content from day one).
+
+Multi-horizon (v2): the same engine now runs at 3/6/12 months (calibrated fans)
+and 5/10 years (valuation-based long-run expected return, where CAPE actually
+earns its keep — PLAN §A3: R²≈0.43 at 10y vs ~0.04 at 1y). The expensive monthly
+volatility models are fit ONCE and reused across every horizon; only the cheap
+H-scaled calibration + FHS shape is redone per horizon.
+
+Honesty at long horizons (the project's #1 value): 5y/10y have very few
+*independent* (non-overlapping) windows — reported as `n_eff` — so their fans are
+labelled "indicative, not calibrated" rather than dressed up as 90% intervals.
 
 Outputs (app/):
-  forecast.json   asof, spot, 12m quantiles, monthly fan path, indicators, provenance
-  history.json    past forecasts (annual) with realized outcome + 90%-band hit flag
+  forecast.json   nested {indices→horizons} + a back-compat 1-year top-level mirror
+  history.json    past 12m forecasts (annual) with realized outcome + 90%-band hit
 Run: uv run python forecast.py   (the GitHub Actions daily job runs exactly this)
 """
 
@@ -20,12 +26,26 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from phase5_fanchart import (load_inputs, predictive_quantiles, latest_forecast,
-                             fan_from_fhs, calib_metrics, QGRID)
+from phase3_level0 import build_features, backtest
+from phase5_fanchart import (vol_raw_const, vol_raw_ewma, vol_raw_garch,
+                             calib_metrics, fan_from_fhs, QGRID)
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "data" / "processed"
 APP = ROOT / "app"
+
+QS = [0.05, 0.25, 0.5, 0.75, 0.95]
+
+# Horizon registry (PLAN §A3 / core-engine design). λ prior rises with H (more of
+# the valuation gap closes over a longer horizon: 1−φ^(H/12), φ≈0.92); long horizons
+# shrink HARDER toward the prior (shrink_w) because the OLS λ is Stambaugh-biased.
+HORIZONS = [
+    {"key": "3mo",   "H": 3,   "prior": 0.03, "cap": 0.20, "shrink": 0.5,  "min_cal": 120, "tier": "core"},
+    {"key": "6mo",   "H": 6,   "prior": 0.05, "cap": 0.25, "shrink": 0.5,  "min_cal": 120, "tier": "core"},
+    {"key": "12mo",  "H": 12,  "prior": 0.10, "cap": 0.35, "shrink": 0.5,  "min_cal": 120, "tier": "core"},
+    {"key": "60mo",  "H": 60,  "prior": 0.45, "cap": 0.80, "shrink": 0.25, "min_cal": 60,  "tier": "long-run"},
+    {"key": "120mo", "H": 120, "prior": 0.65, "cap": 1.00, "shrink": 0.25, "min_cal": 48,  "tier": "long-run"},
+]
 
 # indicator panel: (master column, label, "high value =" direction for equities)
 INDICATORS = [
@@ -60,10 +80,77 @@ def indicator_panel(master: pd.DataFrame) -> list:
     return out
 
 
+# --------------------------------------------------- per-horizon walk-forward FHS
+
+def horizon_walk_forward(df, raw_s, spec):
+    """Walk-forward FHS predictive quantiles for one horizon, reusing precomputed
+    monthly variances `raw_s` (so the costly GARCH fit happens once for all horizons).
+    Mirrors phase5_fanchart.predictive_quantiles for the const/ewma/garch models — at
+    H=12 it reproduces the validated 1-year output exactly."""
+    H = spec["H"]; min_cal = spec["min_cal"]
+    bt = backtest(df, lag=0, H=H, lam_prior=spec["prior"], lam_cap=spec["cap"],
+                  shrink_w=spec["shrink"]).set_index("date")
+    d = bt.dropna(subset=["realized", "fc_level0_est"])
+    idx = d.index
+    mu = d["fc_level0_est"].to_numpy(); realized = d["realized"].to_numpy()
+    n = len(d)
+    models = ["const", "ewma", "garch"]
+    sig_raw = {m: np.sqrt(H * raw_s[m].reindex(idx).to_numpy()) for m in models}
+    quant = {m: np.full((n, len(QGRID)), np.nan) for m in models}
+    sigma_cal = {m: np.full(n, np.nan) for m in models}
+    pit = {m: np.full(n, np.nan) for m in models}
+    for i in range(n):
+        done = np.arange(0, max(i - H + 1, 0))
+        if len(done) < min_cal:
+            continue
+        resid_done = realized[done] - mu[done]; var_done = resid_done ** 2
+        for m in models:
+            sr_i = sig_raw[m][i]
+            if np.isnan(sr_i):
+                continue
+            base = sig_raw[m][done]; ok = ~np.isnan(base)
+            if ok.sum() < min_cal:
+                continue
+            sigma_cal[m][i] = np.sqrt(np.mean(var_done[ok]) / np.mean(base[ok] ** 2)) * sr_i  # level calibration
+        for m in models:
+            s12 = sigma_cal[m][i]
+            if np.isnan(s12):
+                continue
+            scal = sigma_cal[m][done]; zok = ~np.isnan(scal) & (scal > 0)
+            if zok.sum() < min_cal:
+                continue
+            z = resid_done[zok] / scal[zok]          # standardize by own σ (self-consistent FHS)
+            quant[m][i] = mu[i] + s12 * np.quantile(z, QGRID)
+            pit[m][i] = float(np.mean(z <= (realized[i] - mu[i]) / s12))
+    return d, mu, realized, quant, sigma_cal, pit
+
+
+def latest_for_H(df, raw_garch, d, realized, mu, sigma_cal_garch, spec):
+    """Live forecast at the last available origin, for horizon H (reuses raw garch)."""
+    H = spec["H"]; hf = H / 12.0
+    f = df.reset_index(drop=True)
+    g = f["g20_e10n"].to_numpy(); vg = f["val_gap"].to_numpy()
+    fwd = (f["log_p"].shift(-H) - f["log_p"]).to_numpy()
+    L = len(f) - 1
+    j = np.arange(0, L + 1)
+    ok = ~np.isnan(fwd[j]) & ~np.isnan(vg[j]) & ~np.isnan(g[j]); j = j[ok]
+    lam = float(np.dot(vg[j], fwd[j] - g[j] * hf) / np.dot(vg[j], vg[j]))
+    lam_used = float(np.clip(spec["shrink"] * lam + (1 - spec["shrink"]) * spec["prior"], 0.0, spec["cap"]))
+    mu_L = float(g[L] * hf + lam_used * vg[L])
+    sig_raw_L = float(np.sqrt(H * raw_garch.iloc[-1]))
+    sr_done = np.sqrt(H * raw_garch.reindex(d.index).to_numpy())
+    resid = realized - mu; mok = ~np.isnan(sr_done)
+    kfac = float(np.sqrt(np.mean(resid[mok] ** 2) / np.mean(sr_done[mok] ** 2)))
+    sigma_L = kfac * sig_raw_L
+    cs = sigma_cal_garch; zok = ~np.isnan(cs) & (cs > 0)
+    z = resid[zok] / cs[zok]
+    P0 = float(np.exp(f["log_p"].iloc[-1]))
+    return mu_L, sigma_L, lam_used, z, P0, str(f["date"].iloc[-1].date())
+
+
 def build_history(d, realized, mu, quant, best_idx_model, P0_series, n_per_year=1):
-    """Backfilled answer-key: for ~one origin per year with a known 12m outcome,
-    record the forecast median / 90% band (price) and whether the realized price
-    landed inside the 90% interval."""
+    """Backfilled answer-key (12m): for ~one origin per year with a known 12m outcome,
+    record the forecast median / 50% / 90% bands (price) and the 90%-band hit flag."""
     dates = d.index
     rows = []
     seen_years = set()
@@ -122,63 +209,112 @@ def case_studies(d, realized, quant, model, p0_series):
 
 def main():
     APP.mkdir(exist_ok=True)
-    print("running validated ladder (Level 0 drift + Level 5 vol models) ...")
-    df, bt, disp = load_inputs()
-    d, realized, mu, quant, sigma_cal, pit, models = predictive_quantiles(df, bt, disp)
-
-    # pick best vol model by pinball on the long common window
-    valid = {m: ~np.isnan(quant[m][:, 0]) for m in models}
-    common = np.logical_and.reduce([valid[m] for m in ["const", "ewma", "garch"]])
-    pin = {m: calib_metrics(realized, quant[m], pit[m], QGRID, common)["pinball"]
-           for m in ["const", "ewma", "garch"]}
-    best = min(pin, key=pin.get)
-    cov = calib_metrics(realized, quant[best], pit[best], QGRID, common)
-
-    # latest live forecast + fan
-    mu_L, sig_L, zpool, P0, asof = latest_forecast(df, d, realized, mu, sigma_cal, best)
-    months, bands, q12 = fan_from_fhs(mu_L, sig_L, zpool, P0)
-
+    print("multi-horizon engine: features + monthly vol models (fit once) ...")
+    df = build_features().sort_values("date").reset_index(drop=True)
+    df["r_m"] = df["log_p"].diff()
+    rm = df["r_m"].to_numpy()
+    raw_s = {"const": pd.Series(vol_raw_const(rm), index=df["date"]),
+             "ewma": pd.Series(vol_raw_ewma(rm), index=df["date"]),
+             "garch": pd.Series(vol_raw_garch(rm), index=df["date"])}  # the expensive one, once
     master = pd.read_csv(OUT / "master_monthly.csv", parse_dates=["date"])
-    p0_series = pd.Series(np.exp(df.set_index("date")["log_p"].reindex(d.index).to_numpy()), index=d.index)
-    qs = [0.05, 0.25, 0.5, 0.75, 0.95]
+    indicators = indicator_panel(master)
 
-    pit_best = pit[best][common]
-    pit_best = pit_best[~np.isnan(pit_best)]
-    pit_counts, _ = np.histogram(pit_best, bins=10, range=(0, 1))
+    blocks = {}
+    mirror12 = None
+    hist12 = None
+    asof = None
+    P0_top = None
+    print("walk-forward FHS per horizon (reusing the monthly vols) ...")
+    for spec in HORIZONS:
+        H = spec["H"]; key = spec["key"]
+        d, mu, realized, quant, sigma_cal, pit = horizon_walk_forward(df, raw_s, spec)
+        valid = {m: ~np.isnan(quant[m][:, 0]) for m in ["const", "ewma", "garch"]}
+        common = np.logical_and.reduce([valid[m] for m in ["const", "ewma", "garch"]])
+        if common.sum() == 0:
+            print(f"  [{key:5s}] no calibrated origins — skipped")
+            continue
+        cov = calib_metrics(realized, quant["garch"], pit["garch"], QGRID, common)
+        pit_g = pit["garch"][common]; pit_g = pit_g[~np.isnan(pit_g)]
+        pit_counts, _ = np.histogram(pit_g, bins=10, range=(0, 1))
+        n_eff = max(1, int(common.sum() / H))      # ≈ non-overlapping H-month windows
+        dates = d.index
+
+        mu_L, sigma_L, lam_used, zpool, P0, asof = latest_for_H(
+            df, raw_s["garch"], d, realized, mu, sigma_cal["garch"], spec)
+        months, bands, q12 = fan_from_fhs(mu_L, sigma_L, zpool, P0, H=H)
+        P0_top = P0
+
+        note = ("walk-forward calibrated; outer bands reliable" if spec["tier"] == "core"
+                else f"long-run valuation view: only ~{n_eff} independent {H // 12}y windows — "
+                     "treat the band as indicative, not a calibrated 90% interval (Stambaugh-aware)")
+        block = {
+            "horizon_months": H, "tier": spec["tier"],
+            "model": {"drift": "Level-0 structural anchor (log PERxEPS)", "vol": "garch",
+                      "shape": "filtered historical simulation",
+                      "mu_log": round(mu_L, 4), "sigma": round(sigma_L, 4), "lambda_used": round(lam_used, 3)},
+            "return_quantiles_pct": {str(q): round((np.exp(mu_L + sigma_L * np.quantile(zpool, q)) - 1) * 100, 1) for q in QS},
+            "price_quantiles": {str(q): round(v, 1) for q, v in q12.items()},
+            "fan_path": {"months": months.tolist(),
+                         **{f"q{int(q*100):02d}": [round(x, 1) for x in bands[q]] for q in QS}},
+            "calibration": {"window": [str(dates[common].min().date()), str(dates[common].max().date())],
+                            "n": int(common.sum()), "n_eff": n_eff,
+                            "cover50": round(cov["cover_50"], 3), "cover80": round(cov["cover_80"], 3),
+                            "cover90": round(cov["cover_90"], 3), "pit_ks": round(cov["pit_ks"], 3),
+                            "pit_hist": pit_counts.tolist(), "note": note},
+        }
+        if spec["tier"] == "long-run":
+            block["long_run"] = {"expected_annualized_pct": round((np.exp(mu_L * 12.0 / H) - 1) * 100, 1),
+                                 "method": "CAPE valuation anchor, λ shrunk toward an economic prior (Stambaugh-aware)"}
+
+        if key == "12mo":
+            p0_series = pd.Series(np.exp(df.set_index("date")["log_p"].reindex(d.index).to_numpy()), index=d.index)
+            block["case_studies"] = case_studies(d, realized, {"garch": quant["garch"]}, "garch", p0_series)
+            hist12 = build_history(d, realized, mu, {"garch": quant["garch"]}, "garch", p0_series)
+            # back-compat top-level mirror = the validated 1-year flat schema the app already reads
+            mirror12 = {
+                "model": {"drift": "Level-0 structural anchor (log PERxEPS)", "vol": "garch",
+                          "shape": "filtered historical simulation",
+                          "mu_12m_log": round(mu_L, 4), "sigma_12m": round(sigma_L, 4)},
+                "return_quantiles_pct": block["return_quantiles_pct"],
+                "price_quantiles": block["price_quantiles"],
+                "fan_path": block["fan_path"],
+                "calibration": {"window": block["calibration"]["window"], "n": block["calibration"]["n"],
+                                "cover50": block["calibration"]["cover50"], "cover80": block["calibration"]["cover80"],
+                                "cover90": block["calibration"]["cover90"], "pit_ks": block["calibration"]["pit_ks"],
+                                "pit_hist": block["calibration"]["pit_hist"],
+                                "note": "walk-forward calibrated; outer bands reliable"},
+                "case_studies": block["case_studies"],
+            }
+        blocks[key] = block
+        print(f"  [{key:5s}] n={int(common.sum()):4d} n_eff={n_eff:3d}  "
+              f"median {(np.exp(mu_L) - 1) * 100:+6.1f}%  cover90={cov['cover_90']:.2f}  tier={spec['tier']}")
+
     forecast = {
+        "schema_version": 2,
         "asof": asof,
-        "spot": round(P0, 1),
+        "default": {"index": "SP500", "horizon": "12mo"},
+        "indices": {"SP500": {"label": "S&P 500", "spot": round(P0_top, 1),
+                              "indicators": indicators, "horizons": blocks}},
+        # ---- back-compat top-level mirror (the validated 1-year flat schema) ----
+        "spot": round(P0_top, 1),
         "horizon_months": 12,
-        "model": {"drift": "Level-0 structural anchor (log PERxEPS)",
-                  "vol": best, "shape": "filtered historical simulation",
-                  "mu_12m_log": round(mu_L, 4), "sigma_12m": round(sig_L, 4)},
-        "return_quantiles_pct": {str(q): round((np.exp(mu_L + sig_L * np.quantile(zpool, q)) - 1) * 100, 1) for q in qs},
-        "price_quantiles": {str(q): round(v, 1) for q, v in q12.items()},
-        "fan_path": {"months": months.tolist(),
-                     **{f"q{int(q*100):02d}": [round(x, 1) for x in bands[q]] for q in qs}},
-        "indicators": indicator_panel(master),
-        "calibration": {"window": [str(d.index[common].min().date()), str(d.index[common].max().date())],
-                        "n": int(common.sum()),
-                        "cover50": round(cov["cover_50"], 3), "cover80": round(cov["cover_80"], 3),
-                        "cover90": round(cov["cover_90"], 3),
-                        "pit_ks": round(cov["pit_ks"], 3),
-                        "pit_hist": pit_counts.tolist(),
-                        "note": "walk-forward calibrated; outer bands reliable"},
-        "case_studies": case_studies(d, realized, quant, best, p0_series),
+        "model": mirror12["model"],
+        "return_quantiles_pct": mirror12["return_quantiles_pct"],
+        "price_quantiles": mirror12["price_quantiles"],
+        "fan_path": mirror12["fan_path"],
+        "indicators": indicators,
+        "calibration": mirror12["calibration"],
+        "case_studies": mirror12["case_studies"],
     }
     (APP / "forecast.json").write_text(json.dumps(forecast, indent=2))
 
-    history = build_history(d, realized, mu, quant, best, p0_series)
-    hit = np.mean([h["in90"] for h in history]) if history else float("nan")
+    hit = np.mean([h["in90"] for h in hist12]) if hist12 else float("nan")
     (APP / "history.json").write_text(json.dumps(
         {"note": "Backfilled from walk-forward backtest (answer-key log). 'in90' = realized inside the 90% band.",
-         "n": len(history), "hit_rate_90": round(float(hit), 3), "records": history}, indent=2))
+         "n": len(hist12), "hit_rate_90": round(float(hit), 3), "records": hist12}, indent=2))
 
-    print(f"  asof {asof}: spot {P0:,.0f} -> 12m median {q12[0.5]:,.0f} "
-          f"({(q12[0.5]/P0-1)*100:+.1f}%), 90% [{q12[0.05]:,.0f}, {q12[0.95]:,.0f}]")
-    print(f"  vol={best}, calibration cover90={cov['cover_90']:.2f}, history records={len(history)} "
-          f"(90% hit-rate {hit:.0%})")
-    print(f"  -> app/forecast.json, app/history.json")
+    print(f"\n  asof {asof}: spot {P0_top:,.0f}; horizons {list(blocks.keys())}")
+    print(f"  -> app/forecast.json (schema v2: indices→horizons + 1y mirror), app/history.json")
 
 
 if __name__ == "__main__":

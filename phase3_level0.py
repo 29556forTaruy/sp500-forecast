@@ -76,27 +76,29 @@ def estimate_lambda(y: np.ndarray, x: np.ndarray) -> float:
     return float(np.dot(x, y) / denom) if denom > 0 else np.nan
 
 
-def backtest(df: pd.DataFrame, lag: int = 0) -> pd.DataFrame:
-    """One forecast per monthly origin. `lag` shifts the EARNINGS-derived signal
-    (val_gap, g) by `lag` months — the price anchor log_p stays current — to
-    emulate the publication lag of Shiller earnings (§5.1 honest variant)."""
+def backtest(df: pd.DataFrame, lag: int = 0, H: int = H,
+             lam_prior: float = LAMBDA_PRIOR, lam_cap: float = LAMBDA_CAP,
+             shrink_w: float = 0.5) -> pd.DataFrame:
+    """One forecast per monthly origin, for an H-month horizon. `lag` shifts the
+    EARNINGS-derived signal (val_gap, g) by `lag` months — the price anchor log_p
+    stays current — to emulate the publication lag of Shiller earnings (§5.1).
+    Defaults (H=12, prior 0.10, cap 0.35, 50/50 shrink) reproduce the validated
+    1-year anchor byte-for-byte; other horizons re-scale the growth drift by H/12
+    (drift compounds) and re-estimate λ with an H-appropriate prior/cap — longer
+    horizon → more reversion (PLAN §A3: CAPE φ≈0.92, half-life ~7y)."""
+    hf = H / 12.0
     g = df["g20_e10n"].shift(lag).to_numpy()
     vg = df["val_gap"].shift(lag).to_numpy()
-    log_p = df["log_p"].to_numpy()
-    fwd = df["fwd12_log_ret"].to_numpy()
-    # quantile band offsets (in log price), using lagged signal too
+    fwd = (df["log_p"].shift(-H) - df["log_p"]).to_numpy()   # H-month forward log return
     q_off = {q: (np.log(df[f"cape_q{int(q*100):02d}_360m"]) - np.log(df["cape_star_360m"])).shift(lag).to_numpy()
              for q in QS}
 
     n = len(df)
     rows = []
-    # index of completed-target rows usable for training at each origin
     for i in range(n):
         if i + H >= n or np.isnan(fwd[i]) or np.isnan(vg[i]) or np.isnan(g[i]):
             continue
-        # training set: rows j whose target completed by origin i (j + H <= i)
-        train_mask = np.zeros(n, dtype=bool)
-        jmax = i - H
+        jmax = i - H                       # rows whose H-month target completed by origin i
         if jmax < 0:
             continue
         j = np.arange(0, jmax + 1)
@@ -104,18 +106,19 @@ def backtest(df: pd.DataFrame, lag: int = 0) -> pd.DataFrame:
         j = j[valid]
         if len(j) < MIN_TRAIN:
             continue
-        y_tr = fwd[j] - g[j]
+        y_tr = fwd[j] - g[j] * hf           # residual after the (H-scaled) growth drift
         x_tr = vg[j]
         lam_ols = estimate_lambda(y_tr, x_tr)
-        lam_shrink = float(np.clip(0.5 * lam_ols + 0.5 * LAMBDA_PRIOR, 0.0, LAMBDA_CAP))
-        rw_drift = float(np.mean(fwd[j]))  # expanding historical mean annual log return
+        lam_shrink = float(np.clip(shrink_w * lam_ols + (1 - shrink_w) * lam_prior, 0.0, lam_cap))
+        rw_drift = float(np.mean(fwd[j]))  # expanding historical mean H-month log return
 
         realized = fwd[i]
+        drift = g[i] * hf
         fcs = {
-            "level0_est": g[i] + lam_shrink * vg[i],
-            "level0_prior": g[i] + LAMBDA_PRIOR * vg[i],
-            "full_reversion": g[i] + 1.0 * vg[i],     # user's original idea (lambda=1)
-            "drift_only": g[i],                        # EPS growth, no valuation
+            "level0_est": drift + lam_shrink * vg[i],
+            "level0_prior": drift + lam_prior * vg[i],
+            "full_reversion": drift + 1.0 * vg[i],     # user's original idea (lambda=1)
+            "drift_only": drift,                        # EPS growth, no valuation
             "rw_zero": 0.0,
             "rw_drift": rw_drift,
         }

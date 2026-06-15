@@ -40,19 +40,33 @@ def load():
 # strings so the exact number formatting is identical across both languages.
 T = {
     "en": {
-        "title": "S&P 500 — 1-year probabilistic forecast",
+        "title": "S&P 500 — probabilistic forecast",
         "caption": "As of {asof} · spot {spot} · drift = {drift} · vol = {vol} · shape = {shape}",
         "m_spot": "Spot",
         "m_median": "12m median",
         "m_range90": "90% range",
         "m_range50": "50% range",
+        "sel_horizon": "Horizon",
+        "m_median_h": "{h} median",
         "plain": (
-            "**Plain English:** a year from now the model's *typical* outcome is **{rmed}%** "
+            "**Plain English:** {h} from now the model's *typical* outcome is **{rmed}%** "
             "(≈ {pmed}), with a 1-in-2 chance of landing between **{r25}%** and **{r75}%**, and a "
             "9-in-10 chance between **{r05}%** and **{r95}%**. The median sits above the average "
-            "because crashes drag the *mean* down — most years are modestly up, a few are sharply "
+            "because crashes drag the *mean* down — most periods are modestly up, a few are sharply "
             "down. Valuation (CAPE) is historically extreme, which lowers the *mean* but barely "
-            "moves the 1-year median; it mainly fattens the downside."),
+            "moves this median; it mainly fattens the downside."),
+        "plain_long": (
+            "**Plain English:** over the next **{h}**, valuation finally does the heavy lifting — "
+            "historically CAPE explains a large share of long-run returns (vs almost nothing at 1 "
+            "year). The model's central estimate is about **{ann}% per year** ({rmed}% total over "
+            "{h}), and today's extreme CAPE is what pulls it down. **Honesty first:** history offers "
+            "only ~**{neff}** *independent* {h} windows, so read the band as *indicative*, not a "
+            "calibrated 90% interval."),
+        "fan_info_long": (
+            "Long-run view ({h}): the 90% band historically covered {c90} of outcomes — but this "
+            "rests on just ~**{neff}** *independent* {h} windows, far too few to calibrate honestly. "
+            "Read the median as a valuation-based expected return and the band as indicative, not a "
+            "90% guarantee. This is where CAPE actually has predictive power (PLAN §A3)."),
         "tabs": ["① Fan chart", "② Indicator heatmap", "③ Calibration",
                  "④ Answer-key log", "⑤ Time machine", "⑥ How it works"],
         # fan chart
@@ -96,6 +110,11 @@ T = {
         "cal_t50": "target 50%",
         "cal_t80": "target 80%",
         "cal_t90": "target 90%",
+        "cal_long_caveat": "⚠️ This is a **long-run ({h})** horizon. The coverage below is computed "
+                           "over **overlapping** windows; there are only ~**{neff}** *independent* "
+                           "{h} windows in history, so these numbers carry a wide margin of error and "
+                           "the PIT histogram is not meaningful at this sample size. Treat the {h} fan "
+                           "as a valuation-based view, not a calibrated interval.",
         "pit_x": "PIT bucket (where the outcome fell in the forecast)",
         "pit_y": "count",
         "pit_ideal": "uniform (ideal)",
@@ -219,18 +238,31 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
                 "realized_ret_pct": "realized %", "in90": "in90"},
     },
     "ja": {
-        "title": "S&P 500 — 1年先の確率予測",
+        "title": "S&P 500 — 確率予測",
         "caption": "{asof} 時点 · 現在値 {spot} · ドリフト = {drift} · ボラ = {vol} · 形状 = {shape}",
         "m_spot": "現在値",
         "m_median": "12ヶ月中央値",
         "m_range90": "90%レンジ",
         "m_range50": "50%レンジ",
+        "sel_horizon": "予測期間",
+        "m_median_h": "{h}後の中央値",
         "plain": (
-            "**ひとことで言うと:** 1年後のモデルの*典型的な*結果は **{rmed}%**(≈ {pmed})。"
+            "**ひとことで言うと:** {h}後のモデルの*典型的な*結果は **{rmed}%**(≈ {pmed})。"
             "2回に1回は **{r25}%〜{r75}%**、10回に9回は **{r05}%〜{r95}%** の範囲に収まる見込みです。"
-            "中央値が平均より上にあるのは、暴落が*平均*を押し下げるから — 多くの年は緩やかな上昇で、"
-            "少数の年に大きく下げます。バリュエーション(CAPE)は歴史的に極端な水準で、これは*平均*を"
-            "下げますが1年の中央値はほとんど動かさず、主に下振れの裾を太くします。"),
+            "中央値が平均より上にあるのは、暴落が*平均*を押し下げるから — 多くの期間は緩やかな上昇で、"
+            "少数の期間に大きく下げます。バリュエーション(CAPE)は歴史的に極端な水準で、これは*平均*を"
+            "下げますがこの中央値はほとんど動かさず、主に下振れの裾を太くします。"),
+        "plain_long": (
+            "**ひとことで言うと:** これからの**{h}**では、バリュエーションがついに主役になります — "
+            "CAPE は長期リターンの大きな部分を説明します(1年ではほぼ無力)。モデルの中心的な見立ては"
+            "**年率 約{ann}%**({h}合計で {rmed}%)で、現在の極端な CAPE がこれを押し下げています。"
+            "**正直に言うと:** 歴史上、独立した{h}の窓は約**{neff}**個しかないので、この帯は較正済みの"
+            "90%区間ではなく*目安*として見てください。"),
+        "fan_info_long": (
+            "長期ビュー({h}):過去の90%帯のカバー率は {c90} ですが、これは独立した{h}の窓が約"
+            "**{neff}**個しかない上での数字で、正直に較正するには少なすぎます。中央値はバリュエーション"
+            "根拠の期待リターン、帯は目安として読んでください(90%保証ではありません)。CAPEが本当に"
+            "予測力を持つのはこの長期です(PLAN §A3)。"),
         "tabs": ["① ファンチャート", "② 指標ヒートマップ", "③ 較正",
                  "④ 答え合わせログ", "⑤ タイムマシン", "⑥ モデルの仕組み"],
         # fan chart
@@ -273,6 +305,10 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
         "cal_t50": "目標 50%",
         "cal_t80": "目標 80%",
         "cal_t90": "目標 90%",
+        "cal_long_caveat": "⚠️ これは**長期({h})**のホライズンです。下のカバー率は**重複する**窓で"
+                           "計算しており、歴史上の独立した{h}の窓は約**{neff}**個しかないため、これらの"
+                           "数値は誤差が大きく、この標本サイズでは PIT ヒストグラムも意味を持ちません。"
+                           "{h}のファンは較正済み区間ではなく、バリュエーション根拠の見立てとして扱ってください。",
         "pit_x": "PIT バケット(結果が予測分布のどこに落ちたか)",
         "pit_y": "件数",
         "pit_ideal": "一様(理想)",
@@ -451,6 +487,13 @@ CASE_LABEL = {
     "GFC trough (Mar 2009)": {"en": "GFC trough (Mar 2009)", "ja": "金融危機の大底(2009年3月)"},
     "Pre-COVID (Feb 2020)": {"en": "Pre-COVID (Feb 2020)", "ja": "コロナ前(2020年2月)"},
 }
+HZ_LABEL = {
+    "3mo":   {"en": "3 months", "ja": "3か月"},
+    "6mo":   {"en": "6 months", "ja": "6か月"},
+    "12mo":  {"en": "1 year",   "ja": "1年"},
+    "60mo":  {"en": "5 years",  "ja": "5年"},
+    "120mo": {"en": "10 years", "ja": "10年"},
+}
 
 # ============================================================ language toggle
 _, lc = st.columns([4, 1])
@@ -467,34 +510,68 @@ def t(key, **kw):
 
 # ============================================================ data + header
 fc, hist = load()
-spot = fc["spot"]; q = fc["price_quantiles"]; rq = fc["return_quantiles_pct"]; cal = fc["calibration"]
-m = fc["model"]
 
 
 def mlabel(v):
     return MODEL_LABEL[L].get(v, v)
 
 
+def hz_label(k):
+    return HZ_LABEL.get(k, {}).get(L, k)
+
+
+# resolve schema: v2 nests indices→horizons; gracefully fall back to the legacy flat file
+if fc.get("schema_version", 1) >= 2:
+    _idx = fc["indices"]["SP500"]
+    HORIZONS_AVAIL = _idx["horizons"]
+    spot = _idx["spot"]
+    indicators_data = _idx["indicators"]
+else:
+    HORIZONS_AVAIL = {"12mo": fc}
+    spot = fc["spot"]
+    indicators_data = fc["indicators"]
+
 st.title(t("title"))
+
+# horizon selector — drives every tab; default 1 year
+hz_keys = list(HORIZONS_AVAIL.keys())
+hz_default = "12mo" if "12mo" in hz_keys else hz_keys[0]
+if len(hz_keys) > 1:
+    _sel = st.segmented_control(t("sel_horizon"), [hz_label(k) for k in hz_keys],
+                                default=hz_label(hz_default), selection_mode="single")
+    hz = next((k for k in hz_keys if hz_label(k) == _sel), hz_default)
+else:
+    hz = hz_default
+leaf = HORIZONS_AVAIL[hz]
+q = leaf["price_quantiles"]; rq = leaf["return_quantiles_pct"]; cal = leaf["calibration"]; m = leaf["model"]
+is_long = leaf.get("tier") == "long-run"
+hlabel = hz_label(hz)
+
 st.caption(t("caption", asof=fc["asof"], spot=f"{spot:,.0f}",
               drift=mlabel(m["drift"]), vol=mlabel(m["vol"]), shape=mlabel(m["shape"])))
 
 c1, c2, c3, c4 = st.columns(4)
 c1.metric(t("m_spot"), f"{spot:,.0f}")
-c2.metric(t("m_median"), f"{q['0.5']:,.0f}", f"{rq['0.5']:+.1f}%")
+c2.metric(t("m_median_h", h=hlabel), f"{q['0.5']:,.0f}", f"{rq['0.5']:+.1f}%")
 c3.metric(t("m_range90"), f"{q['0.05']:,.0f} – {q['0.95']:,.0f}")
 c4.metric(t("m_range50"), f"{q['0.25']:,.0f} – {q['0.75']:,.0f}")
 
-st.markdown(t("plain",
-              rmed=f"{rq['0.5']:+.1f}", pmed=f"{q['0.5']:,.0f}",
-              r25=f"{rq['0.25']:+.1f}", r75=f"{rq['0.75']:+.1f}",
-              r05=f"{rq['0.05']:+.1f}", r95=f"{rq['0.95']:+.1f}"))
+if is_long:
+    lr = leaf.get("long_run", {})
+    st.markdown(t("plain_long", h=hlabel,
+                  ann=f"{lr.get('expected_annualized_pct', float('nan')):+.1f}",
+                  rmed=f"{rq['0.5']:+.1f}", neff=cal.get("n_eff", "?")))
+else:
+    st.markdown(t("plain", h=hlabel,
+                  rmed=f"{rq['0.5']:+.1f}", pmed=f"{q['0.5']:,.0f}",
+                  r25=f"{rq['0.25']:+.1f}", r75=f"{rq['0.75']:+.1f}",
+                  r05=f"{rq['0.05']:+.1f}", r95=f"{rq['0.95']:+.1f}"))
 
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(t("tabs"))
 
 # ----------------------------------------------------------------- fan chart
 with tab1:
-    fp = fc["fan_path"]; mo = [0] + fp["months"]
+    fp = leaf["fan_path"]; mo = [0] + fp["months"]
     def path(qk): return [spot] + fp[qk]
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=mo, y=path("q95"), line=dict(width=0), showlegend=False, hoverinfo="skip"))
@@ -507,13 +584,18 @@ with tab1:
     fig.add_hline(y=spot, line_dash="dot", line_color="grey", annotation_text=t("fan_now", spot=f"{spot:,.0f}"))
     fig.update_layout(height=480, xaxis_title=t("fan_x"), yaxis_title=t("fan_y"),
                       margin=dict(t=20), hovermode="x unified")
+    if is_long:  # multi-year bands span orders of magnitude → log axis keeps them readable
+        fig.update_yaxes(type="log")
     st.plotly_chart(fig, use_container_width=True)
-    st.info(t("fan_info", w0=cal["window"][0], w1=cal["window"][1], n=cal["n"],
-              c80=f"{cal['cover80']:.0%}", c90=f"{cal['cover90']:.0%}"))
+    if is_long:
+        st.warning(t("fan_info_long", h=hlabel, neff=cal.get("n_eff", "?"), c90=f"{cal['cover90']:.0%}"))
+    else:
+        st.info(t("fan_info", w0=cal["window"][0], w1=cal["window"][1], n=cal["n"],
+                  c80=f"{cal['cover80']:.0%}", c90=f"{cal['cover90']:.0%}"))
 
 # ---------------------------------------------------------------- heatmap
 with tab2:
-    df = pd.DataFrame(fc["indicators"])
+    df = pd.DataFrame(indicators_data)
     def stance(r):
         s = r["z_10y"]
         return -s if r["direction"] == "bearish" else (s if r["direction"] == "bullish" else 0.0)
@@ -548,12 +630,14 @@ with tab2:
 with tab3:
     st.subheader(t("cal_h"))
     st.write(t("cal_intro"))
+    if is_long:
+        st.warning(t("cal_long_caveat", h=hlabel, neff=cal.get("n_eff", "?")))
     cc1, cc2, cc3 = st.columns(3)
     cc1.metric(t("cal_m50"), f"{cal.get('cover50', float('nan')):.0%}", t("cal_t50"))
     cc2.metric(t("cal_m80"), f"{cal['cover80']:.0%}", t("cal_t80"))
     cc3.metric(t("cal_m90"), f"{cal['cover90']:.0%}", t("cal_t90"))
     pit = cal.get("pit_hist", [])
-    if pit:
+    if pit and not is_long:
         n = sum(pit); k = len(pit); ideal = n / k
         figp = go.Figure()
         figp.add_trace(go.Bar(x=[f"{i*10}–{(i+1)*10}%" for i in range(k)], y=pit, marker_color="#1f77b4",
