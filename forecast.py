@@ -61,6 +61,25 @@ INDICATORS = [
 ]
 
 
+def block_bootstrap_ci(flags, block, n_boot=2000, lo=0.1, hi=0.9, seed=0):
+    """Circular block-bootstrap CI for a coverage rate over OVERLAPPING windows.
+    `flags` = 0/1 'realized inside the band' per origin; block ≈ H months absorbs the
+    overlap autocorrelation. Returns the [lo, hi] quantiles of the bootstrap coverage
+    distribution — the honest error bar on a long-horizon coverage number (few n_eff)."""
+    flags = np.asarray(flags, dtype=float)
+    nf = len(flags)
+    if nf == 0:
+        return [float("nan"), float("nan")]
+    rng = np.random.default_rng(seed)
+    nblocks = int(np.ceil(nf / block))
+    means = np.empty(n_boot)
+    for b in range(n_boot):
+        starts = rng.integers(0, nf, size=nblocks)
+        idx = np.concatenate([np.arange(s, s + block) % nf for s in starts])[:nf]
+        means[b] = flags[idx].mean()
+    return [float(np.quantile(means, lo)), float(np.quantile(means, hi))]
+
+
 def indicator_panel(master: pd.DataFrame) -> list:
     out = []
     for col, label, direction in INDICATORS:
@@ -186,13 +205,13 @@ CASE_STUDIES = [
 ]
 
 
-def case_studies(d, realized, quant, model, p0_series):
+def case_studies(d, realized, quant, model, p0_series, studies=CASE_STUDIES):
     """Forecasts the model made at famous turning points + what actually happened —
     the honest record including the misses (e.g. it could not foresee 2008)."""
     dates = d.index
     qmd = int(np.where(np.isclose(QGRID, 0.5))[0][0])
     rows = []
-    for tgt, label in CASE_STUDIES:
+    for tgt, label in studies:
         i = int(np.argmin(np.abs(dates - pd.Timestamp(tgt))))
         if np.isnan(quant[model][i, 0]):
             continue
@@ -207,85 +226,152 @@ def case_studies(d, realized, quant, model, p0_series):
     return rows
 
 
-def japan_index_block(nk):
-    """Nikkei 225 (Japan): the SAME GARCH+FHS distribution engine, but a NEUTRAL
-    drift — the point-in-time expanding mean of past H-month returns — because there
-    is no free long Japanese CAPE to anchor a valuation drift. This is the honest
-    'random-walk-with-historical-drift' baseline (PLAN §11/§12 found US CAPE adds ~0
-    at 1y anyway). Distribution-only, core horizons (3/6/12m). It will NOT have
-    called the 1989 bubble top — surfaced as a caveat in the app."""
+JP_TREND_WIN = 240   # 20y rolling window for the price-trend "fair value" (CAPE proxy)
+JP_CASE_STUDIES = [
+    ("1989-12-31", "Bubble peak (Dec 1989)"),
+    ("2003-04-30", "Post-bubble trough (Apr 2003)"),
+    ("2009-02-28", "GFC trough (Feb 2009)"),
+    ("2012-12-31", "Abenomics launch (Dec 2012)"),
+]
+
+
+def build_features_jp(nk):
+    """Japan (Nikkei 225) features. No free long Japanese CAPE exists, so the
+    valuation signal is a PRICE-TREND proxy: a point-in-time rolling 20y log-linear
+    trend. `val_gap` = trend − log price (>0 = below trend = 'cheap'); `g20_e10n` =
+    the trend's annual slope. Reusing the US column names lets the SAME validated
+    backtest/anchor run on Japan — λ is estimated walk-forward, so if the trend has
+    no predictive power λ shrinks toward ~0 and the drift degrades gracefully to the
+    trend's own growth (honest by construction, like Level 0)."""
     mser = nk.set_index("date")["close"].resample("ME").last().dropna()
     df = pd.DataFrame({"date": mser.index, "close": mser.to_numpy()})
     df["log_p"] = np.log(df["close"]); df["r_m"] = df["log_p"].diff()
+    lp = df["log_p"].to_numpy(); n = len(df)
+    trend = np.full(n, np.nan); slope = np.full(n, np.nan)
+    for t in range(n):
+        lo = t - JP_TREND_WIN + 1
+        if lo < 0:
+            continue
+        y = lp[lo:t + 1]
+        if np.isnan(y).any():
+            continue
+        x = np.arange(len(y), dtype=float)
+        b, a = np.polyfit(x, y, 1)            # slope per month, intercept
+        trend[t] = a + b * (len(y) - 1)        # fitted trend level at t
+        slope[t] = b
+    df["g20_e10n"] = slope * 12                 # annual trend growth (reuse US column name)
+    df["val_gap"] = trend - lp                  # below trend = positive = cheap (reversion target)
+    df["cape_star_360m"] = np.nan               # no CAPE bands for Japan (FHS supplies the spread)
+    for q in [5, 25, 75, 95]:
+        df[f"cape_q{q:02d}_360m"] = np.nan
+    return df
+
+
+def japan_indicators(df):
+    """A small Japan valuation-context panel (the price-vs-trend gap). Honest scope:
+    this is the cruder price-trend proxy used in the drift, not an earnings CAPE."""
+    vg = df["val_gap"].dropna()
+    if vg.empty:
+        return []
+    val = float(vg.iloc[-1])
+    trail = vg.iloc[-120:] if len(vg) >= 24 else vg
+    z = float((val - trail.mean()) / trail.std()) if trail.std() > 0 else 0.0
+    pct = float((vg < val).mean())
+    return [{"key": "JP_TREND_GAP", "label": "Price vs 20y trend", "value": round(val * 100, 1),
+             "z_10y": round(z, 2), "pctile": round(pct, 3), "direction": "bullish",
+             "asof": str(df.loc[df["val_gap"].notna(), "date"].iloc[-1].date())}]
+
+
+def japan_neutral_wf(df, raw_s, spec):
+    """Japan walk-forward with a NEUTRAL drift: mu = point-in-time expanding mean of
+    completed H-month returns (no valuation timing). This uses MORE history than the
+    price-trend anchor (which needs a 240m trend first) and is NOT overfit to the
+    recent bull regime — the honest center for Japan. Same GARCH+FHS spread."""
+    H = spec["H"]; min_cal = spec["min_cal"]
+    fwd = (df["log_p"].shift(-H) - df["log_p"]).to_numpy()
+    n = len(df)
+    mu_full = np.full(n, np.nan)
+    for i in range(n):
+        jmax = i - H
+        if jmax < 0:
+            continue
+        vals = fwd[0:jmax + 1]; vals = vals[~np.isnan(vals)]
+        if len(vals) >= 120:
+            mu_full[i] = vals.mean()
+    pos = np.where(~np.isnan(mu_full) & ~np.isnan(fwd))[0]
+    if len(pos) == 0:
+        return None
+    didx = pd.DatetimeIndex(df["date"].iloc[pos])
+    mu = mu_full[pos]; realized = fwd[pos]; m_ = len(pos)
+    models = ["const", "ewma", "garch"]
+    sig_raw = {mm: np.sqrt(H * raw_s[mm].reindex(didx).to_numpy()) for mm in models}
+    quant = {mm: np.full((m_, len(QGRID)), np.nan) for mm in models}
+    sigma_cal = {mm: np.full(m_, np.nan) for mm in models}
+    pit = {mm: np.full(m_, np.nan) for mm in models}
+    for i in range(m_):
+        done = np.arange(0, max(i - H + 1, 0))
+        if len(done) < min_cal:
+            continue
+        resid_done = realized[done] - mu[done]; var_done = resid_done ** 2
+        for mm in models:
+            sr_i = sig_raw[mm][i]
+            if np.isnan(sr_i):
+                continue
+            base = sig_raw[mm][done]; ok = ~np.isnan(base)
+            if ok.sum() < min_cal:
+                continue
+            sigma_cal[mm][i] = np.sqrt(np.mean(var_done[ok]) / np.mean(base[ok] ** 2)) * sr_i
+        for mm in models:
+            s12 = sigma_cal[mm][i]
+            if np.isnan(s12):
+                continue
+            scal = sigma_cal[mm][done]; zok = ~np.isnan(scal) & (scal > 0)
+            if zok.sum() < min_cal:
+                continue
+            z = resid_done[zok] / scal[zok]
+            quant[mm][i] = mu[i] + s12 * np.quantile(z, QGRID)
+            pit[mm][i] = float(np.mean(z <= (realized[i] - mu[i]) / s12))
+    d = pd.DataFrame(index=didx)
+    mu_L = float(np.nanmean(fwd))                       # latest expanding-mean drift
+    sig_raw_L = float(np.sqrt(H * raw_s["garch"].iloc[-1]))
+    sr_done_all = np.sqrt(H * raw_s["garch"].reindex(didx).to_numpy())
+    resid = realized - mu; mok = ~np.isnan(sr_done_all)
+    sigma_L = float(np.sqrt(np.mean(resid[mok] ** 2) / np.mean(sr_done_all[mok] ** 2))) * sig_raw_L
+    cs = sigma_cal["garch"]; zk = ~np.isnan(cs) & (cs > 0); zpool = resid[zk] / cs[zk]
+    return d, mu, realized, quant, sigma_cal, pit, mu_L, sigma_L, zpool
+
+
+def japan_index_block(nk):
+    """Nikkei 225 — distribution-only (GARCH+FHS) with a NEUTRAL drift. There is no
+    free long Japanese CAPE; a price-trend valuation proxy WAS built and tested
+    (build_features_jp) but its walk-forward λ ≈ 0 — no detectable 1-year signal,
+    exactly like US CAPE at 1y (PLAN §11) — so it is shown only as CONTEXT, not used
+    in the drift. Core horizons only (no honest long-run: too few independent
+    windows). Includes the answer-key history + Japanese crisis case studies."""
+    df = build_features_jp(nk)            # for the price-trend context indicator
     rm = df["r_m"].to_numpy()
     raw_s = {"const": pd.Series(vol_raw_const(rm), index=df["date"]),
              "ewma": pd.Series(vol_raw_ewma(rm), index=df["date"]),
              "garch": pd.Series(vol_raw_garch(rm), index=df["date"])}
     P0 = float(df["close"].iloc[-1])
-    n = len(df)
-    hblocks = {}
+    hblocks = {}; hist_records = []
     for spec in [s for s in HORIZONS if s["tier"] == "core"]:
-        H = spec["H"]; min_cal = spec["min_cal"]; key = spec["key"]
-        fwd = (df["log_p"].shift(-H) - df["log_p"]).to_numpy()
-        mu_full = np.full(n, np.nan)                 # expanding-mean (rw) drift, point-in-time
-        for i in range(n):
-            jmax = i - H
-            if jmax < 0:
-                continue
-            vals = fwd[0:jmax + 1]; vals = vals[~np.isnan(vals)]
-            if len(vals) >= 120:
-                mu_full[i] = vals.mean()
-        pos = np.where(~np.isnan(mu_full) & ~np.isnan(fwd))[0]
-        if len(pos) == 0:
+        H = spec["H"]; key = spec["key"]
+        res = japan_neutral_wf(df, raw_s, spec)
+        if res is None:
             continue
-        didx = pd.DatetimeIndex(df["date"].iloc[pos])
-        mu = mu_full[pos]; realized = fwd[pos]; m_ = len(pos)
-        models = ["const", "ewma", "garch"]
-        sig_raw = {mm: np.sqrt(H * raw_s[mm].reindex(didx).to_numpy()) for mm in models}
-        quant = {mm: np.full((m_, len(QGRID)), np.nan) for mm in models}
-        sigma_cal = {mm: np.full(m_, np.nan) for mm in models}
-        pit = {mm: np.full(m_, np.nan) for mm in models}
-        for i in range(m_):
-            done = np.arange(0, max(i - H + 1, 0))
-            if len(done) < min_cal:
-                continue
-            resid_done = realized[done] - mu[done]; var_done = resid_done ** 2
-            for mm in models:
-                sr_i = sig_raw[mm][i]
-                if np.isnan(sr_i):
-                    continue
-                base = sig_raw[mm][done]; ok = ~np.isnan(base)
-                if ok.sum() < min_cal:
-                    continue
-                sigma_cal[mm][i] = np.sqrt(np.mean(var_done[ok]) / np.mean(base[ok] ** 2)) * sr_i
-            for mm in models:
-                s12 = sigma_cal[mm][i]
-                if np.isnan(s12):
-                    continue
-                scal = sigma_cal[mm][done]; zok = ~np.isnan(scal) & (scal > 0)
-                if zok.sum() < min_cal:
-                    continue
-                z = resid_done[zok] / scal[zok]
-                quant[mm][i] = mu[i] + s12 * np.quantile(z, QGRID)
-                pit[mm][i] = float(np.mean(z <= (realized[i] - mu[i]) / s12))
-        valid = {mm: ~np.isnan(quant[mm][:, 0]) for mm in models}
-        common = np.logical_and.reduce([valid[mm] for mm in models])
+        d, mu, realized, quant, sigma_cal, pit, mu_L, sigma_L, zpool = res
+        valid = {mm: ~np.isnan(quant[mm][:, 0]) for mm in ["const", "ewma", "garch"]}
+        common = np.logical_and.reduce([valid[mm] for mm in ["const", "ewma", "garch"]])
         if common.sum() == 0:
             continue
         cov = calib_metrics(realized, quant["garch"], pit["garch"], QGRID, common)
         pit_g = pit["garch"][common]; pit_g = pit_g[~np.isnan(pit_g)]
         pit_counts, _ = np.histogram(pit_g, bins=10, range=(0, 1))
         n_eff = max(1, int(common.sum() / H))
-        # latest live: rw-drift = expanding mean over all completed windows; garch σ + FHS pool
-        mu_L = float(np.nanmean(fwd))
-        sig_raw_L = float(np.sqrt(H * raw_s["garch"].iloc[-1]))
-        sr_done_all = np.sqrt(H * raw_s["garch"].reindex(didx).to_numpy())
-        resid = realized - mu; mok = ~np.isnan(sr_done_all)
-        kfac = float(np.sqrt(np.mean(resid[mok] ** 2) / np.mean(sr_done_all[mok] ** 2)))
-        sigma_L = kfac * sig_raw_L
-        cs = sigma_cal["garch"]; zok = ~np.isnan(cs) & (cs > 0); zpool = resid[zok] / cs[zok]
+        dates = d.index
         months, bands, q12 = fan_from_fhs(mu_L, sigma_L, zpool, P0, H=H)
-        hblocks[key] = {
+        block = {
             "horizon_months": H, "tier": "core",
             "model": {"drift": "neutral drift (historical mean, no valuation timing)", "vol": "garch",
                       "shape": "filtered historical simulation",
@@ -294,17 +380,24 @@ def japan_index_block(nk):
             "price_quantiles": {str(q): round(v, 1) for q, v in q12.items()},
             "fan_path": {"months": months.tolist(),
                          **{f"q{int(q*100):02d}": [round(x, 1) for x in bands[q]] for q in QS}},
-            "calibration": {"window": [str(didx[common].min().date()), str(didx[common].max().date())],
+            "calibration": {"window": [str(dates[common].min().date()), str(dates[common].max().date())],
                             "n": int(common.sum()), "n_eff": n_eff,
                             "cover50": round(cov["cover_50"], 3), "cover80": round(cov["cover_80"], 3),
                             "cover90": round(cov["cover_90"], 3), "pit_ks": round(cov["pit_ks"], 3),
                             "pit_hist": pit_counts.tolist(),
-                            "note": "walk-forward calibrated; neutral (no-valuation) drift"},
+                            "note": "walk-forward calibrated (~recent window); neutral drift"},
         }
+        if key == "12mo":
+            p0s = pd.Series(np.exp(df.set_index("date")["log_p"].reindex(d.index).to_numpy()), index=d.index)
+            hist_records = build_history(d, realized, mu, {"garch": quant["garch"]}, "garch", p0s)
+            block["case_studies"] = case_studies(d, realized, {"garch": quant["garch"]}, "garch", p0s, JP_CASE_STUDIES)
+        hblocks[key] = block
         print(f"  [N225 {key:5s}] n={int(common.sum()):4d} n_eff={n_eff:3d}  "
               f"median {(np.exp(mu_L) - 1) * 100:+6.1f}%  cover90={cov['cover_90']:.2f}")
-    return {"label": "日経225 / Nikkei 225", "spot": round(P0, 1), "indicators": [],
-            "no_valuation": True, "horizons": hblocks}
+    return {"label": "日経225 / Nikkei 225", "spot": round(P0, 1),
+            "indicators": japan_indicators(df), "horizons": hblocks,
+            "valuation_note": "price-trend valuation tested: λ≈0, no detectable 1-year signal — shown as context only",
+            "_history": hist_records}
 
 
 def main():
@@ -363,6 +456,9 @@ def main():
                             "pit_hist": pit_counts.tolist(), "note": note},
         }
         if spec["tier"] == "long-run":
+            in90 = ((realized >= quant["garch"][:, 0]) & (realized <= quant["garch"][:, -1]))[common]
+            ci = block_bootstrap_ci(in90, block=H)
+            block["calibration"]["cover90_ci"] = [round(ci[0], 3), round(ci[1], 3)]
             block["long_run"] = {"expected_annualized_pct": round((np.exp(mu_L * 12.0 / H) - 1) * 100, 1),
                                  "method": "CAPE valuation anchor, λ shrunk toward an economic prior (Stambaugh-aware)"}
 
@@ -392,10 +488,13 @@ def main():
     indices = {"SP500": {"label": "S&P 500", "spot": round(P0_top, 1),
                          "indicators": indicators, "horizons": blocks}}
     nk_path = OUT / "nikkei_daily.csv"
+    jp_hist = None
     if nk_path.exists():
         try:
-            print("Nikkei 225 (distribution-only, neutral drift) ...")
-            indices["N225"] = japan_index_block(pd.read_csv(nk_path, parse_dates=["date"]))
+            print("Nikkei 225 (price-trend valuation drift) ...")
+            jp = japan_index_block(pd.read_csv(nk_path, parse_dates=["date"]))
+            jp_hist = jp.pop("_history", None)
+            indices["N225"] = jp
         except Exception as e:  # never let the secondary index break the US product
             print(f"  !! Japan block failed ({e}); shipping US only")
 
@@ -417,10 +516,16 @@ def main():
     }
     (APP / "forecast.json").write_text(json.dumps(forecast, indent=2))
 
-    hit = np.mean([h["in90"] for h in hist12]) if hist12 else float("nan")
+    us_hit = np.mean([h["in90"] for h in hist12]) if hist12 else float("nan")
+    hist_indices = {"SP500": {"n": len(hist12), "hit_rate_90": round(float(us_hit), 3), "records": hist12}}
+    if jp_hist:
+        jp_hit = np.mean([h["in90"] for h in jp_hist])
+        hist_indices["N225"] = {"n": len(jp_hist), "hit_rate_90": round(float(jp_hit), 3), "records": jp_hist}
     (APP / "history.json").write_text(json.dumps(
-        {"note": "Backfilled from walk-forward backtest (answer-key log). 'in90' = realized inside the 90% band.",
-         "n": len(hist12), "hit_rate_90": round(float(hit), 3), "records": hist12}, indent=2))
+        {"note": "Backfilled walk-forward answer-key. 'in90' = realized inside the 90% band.",
+         "indices": hist_indices,
+         # back-compat mirror (S&P 500) for the legacy flat reader
+         "n": len(hist12), "hit_rate_90": round(float(us_hit), 3), "records": hist12}, indent=2))
 
     print(f"\n  asof {asof}: spot {P0_top:,.0f}; horizons {list(blocks.keys())}")
     print(f"  -> app/forecast.json (schema v2: indices→horizons + 1y mirror), app/history.json")
