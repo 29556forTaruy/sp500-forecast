@@ -378,6 +378,7 @@ def japan_index_block(nk):
                       "mu_log": round(mu_L, 4), "sigma": round(sigma_L, 4)},
             "return_quantiles_pct": {str(q): round((np.exp(mu_L + sigma_L * np.quantile(zpool, q)) - 1) * 100, 1) for q in QS},
             "price_quantiles": {str(q): round(v, 1) for q, v in q12.items()},
+            "z_grid": [round(float(z), 4) for z in np.quantile(zpool, QGRID)],  # FHS shape for the probability calc / scenarios
             "fan_path": {"months": months.tolist(),
                          **{f"q{int(q*100):02d}": [round(x, 1) for x in bands[q]] for q in QS}},
             "calibration": {"window": [str(dates[common].min().date()), str(dates[common].max().date())],
@@ -447,6 +448,7 @@ def main():
                       "mu_log": round(mu_L, 4), "sigma": round(sigma_L, 4), "lambda_used": round(lam_used, 3)},
             "return_quantiles_pct": {str(q): round((np.exp(mu_L + sigma_L * np.quantile(zpool, q)) - 1) * 100, 1) for q in QS},
             "price_quantiles": {str(q): round(v, 1) for q, v in q12.items()},
+            "z_grid": [round(float(z), 4) for z in np.quantile(zpool, QGRID)],  # FHS shape for the probability calc / scenarios
             "fan_path": {"months": months.tolist(),
                          **{f"q{int(q*100):02d}": [round(x, 1) for x in bands[q]] for q in QS}},
             "calibration": {"window": [str(dates[common].min().date()), str(dates[common].max().date())],
@@ -485,8 +487,12 @@ def main():
         print(f"  [{key:5s}] n={int(common.sum()):4d} n_eff={n_eff:3d}  "
               f"median {(np.exp(mu_L) - 1) * 100:+6.1f}%  cover90={cov['cover_90']:.2f}  tier={spec['tier']}")
 
+    _last = df.iloc[-1]   # latest valuation building-blocks for the what-if scenarios
+    valuation = {"cape": round(float(np.exp(_last["log_cape"])), 1),
+                 "cape_star": round(float(np.exp(_last["log_cape"] + _last["val_gap"])), 1),
+                 "g_annual": round(float(_last["g20_e10n"]), 4)}
     indices = {"SP500": {"label": "S&P 500", "spot": round(P0_top, 1),
-                         "indicators": indicators, "horizons": blocks}}
+                         "indicators": indicators, "horizons": blocks, "valuation": valuation}}
     nk_path = OUT / "nikkei_daily.csv"
     jp_hist = None
     if nk_path.exists():
