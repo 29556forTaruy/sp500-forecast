@@ -195,6 +195,18 @@
               91
             ],
             "note": "walk-forward calibrated; outer bands reliable"
+          },
+          "vol_test": {
+            "window": [
+              "2010-05-31",
+              "2026-03-31"
+            ],
+            "n": 191,
+            "garch_pinball": 0.0167,
+            "vix_pinball": 0.0169,
+            "garch_cover90": 0.921,
+            "vix_cover90": 0.911,
+            "winner": "garch"
           }
         },
         "6mo": {
@@ -317,6 +329,18 @@
               75
             ],
             "note": "walk-forward calibrated; outer bands reliable"
+          },
+          "vol_test": {
+            "window": [
+              "2010-11-30",
+              "2025-12-31"
+            ],
+            "n": 182,
+            "garch_pinball": 0.022,
+            "vix_pinball": 0.0228,
+            "garch_cover90": 0.973,
+            "vix_cover90": 0.907,
+            "winner": "garch"
           }
         },
         "12mo": {
@@ -521,7 +545,19 @@
               "realized_ret_pct": 18.5,
               "in90": true
             }
-          ]
+          ],
+          "vol_test": {
+            "window": [
+              "2011-11-30",
+              "2025-06-30"
+            ],
+            "n": 164,
+            "garch_pinball": 0.0315,
+            "vix_pinball": 0.0334,
+            "garch_cover90": 0.994,
+            "vix_cover90": 0.823,
+            "winner": "garch"
+          }
         },
         "60mo": {
           "horizon_months": 60,
@@ -975,6 +1011,18 @@
           "long_run": {
             "expected_annualized_pct": 3.4,
             "method": "CAPE valuation anchor, \u03bb shrunk toward an economic prior (Stambaugh-aware)"
+          },
+          "vol_test": {
+            "window": [
+              "2009-11-30",
+              "2021-06-30"
+            ],
+            "n": 140,
+            "garch_pinball": 0.0691,
+            "vix_pinball": 0.1152,
+            "garch_cover90": 1.0,
+            "vix_cover90": 0.171,
+            "winner": "garch"
           }
         },
         "120mo": {
