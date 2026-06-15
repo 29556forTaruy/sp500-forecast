@@ -1,0 +1,9 @@
+# Streamlit Community Cloud reads THIS file to install dependencies.
+# The hosted app only RENDERS (it reads app/forecast.json + app/history.json),
+# so it needs just these three. The heavy modeling stack (numpy, statsmodels,
+# scikit-learn, arch, ...) runs in the GitHub Actions daily job via uv/pyproject.toml,
+# never on Streamlit Cloud. Keep this minimal so the deploy stays fast.
+# On Streamlit Cloud, pick Python 3.11+ (Advanced settings) — pandas 3.x requires it.
+streamlit==1.58.0
+plotly==6.8.0
+pandas==3.0.3

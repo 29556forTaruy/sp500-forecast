@@ -92,8 +92,14 @@ with tab2:
     df["help"] = df["key"].map(INDICATOR_HELP)
     df["percentile"] = (df["pctile"] * 100).round().astype(int)
     show = df[["label", "value", "z_10y", "percentile", "direction", "stance", "help"]]
+
+    def stance_css(v):  # red↔green wash without needing matplotlib (Streamlit Cloud stays light)
+        t = max(-1.0, min(1.0, v / 2.0))
+        rgb = (40, 170, 70) if t >= 0 else (210, 60, 60)
+        return f"background-color: rgba({rgb[0]},{rgb[1]},{rgb[2]},{abs(t)*0.55+0.08:.2f})"
+
     st.dataframe(
-        show.style.background_gradient(cmap="RdYlGn", subset=["stance"], vmin=-2, vmax=2)
+        show.style.map(stance_css, subset=["stance"])
         .format({"value": "{:.2f}", "z_10y": "{:+.2f}", "stance": "{:+.2f}", "percentile": "{:d}%"}),
         use_container_width=True, hide_index=True,
         column_config={
