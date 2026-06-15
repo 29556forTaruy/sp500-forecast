@@ -8,6 +8,7 @@ Run: uv run streamlit run app/streamlit_app.py
 """
 
 import json
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -42,11 +43,33 @@ T = {
     "en": {
         "title": "Market Fan",
         "tagline": "calibrated probability fan charts for equity indices",
-        "tab_compare": "⑦ Compare",
+        "tab_whatif": "⑦ What-if",
+        "tab_compare": "⑧ Compare",
         "cmp_h": "Compare markets",
         "cmp_intro": "Both markets' 1-year fans, shown as % return from today so the scales line up "
                      "(levels differ: S&P ≈ 7,600 vs Nikkei ≈ 66,000). Wider = more uncertain.",
         "cmp_y": "return from today (%)",
+        "pc_h": "Probability calculator",
+        "pc_intro": "Read any probability straight off the {h} distribution. Estimates are clamped "
+                    "to the modelled 5–95% range (the tails beyond are not claimed).",
+        "pc_target": "Target index level",
+        "pc_above": "chance of finishing **above {x}** in {h}",
+        "pc_below": "chance of finishing **below {x}** in {h}",
+        "pc_q_gain": "any gain (> spot)",
+        "pc_q_loss10": "a fall > 10%",
+        "pc_q_gain10": "a rise > 10%",
+        "pc_q_loss20": "a fall > 20%",
+        "sc_h": "Scenario — what if?",
+        "sc_intro": "Move the sliders to re-draw the {h} fan under your own assumptions. The shape "
+                    "(FHS) is kept; only the center, the width, and the starting level change.",
+        "sc_cape": "CAPE (valuation)",
+        "sc_vol": "Volatility ×",
+        "sc_shock": "Immediate price shock %",
+        "sc_jp_note": "Japan has no CAPE valuation lever (price-only model) — adjust volatility and the immediate shock.",
+        "sc_median": "scenario median",
+        "sc_range90": "scenario 90% range",
+        "sc_base": "base (current forecast)",
+        "sc_scenario": "your scenario",
         "caption": "{index} · as of {asof} · spot {spot} · drift = {drift} · vol = {vol} · shape = {shape}",
         "m_spot": "Spot",
         "m_median": "12m median",
@@ -268,11 +291,33 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
     "ja": {
         "title": "マーケット・ファン",
         "tagline": "株価指数の較正済み確率ファンチャート",
-        "tab_compare": "⑦ 市場比較",
+        "tab_whatif": "⑦ 試算",
+        "tab_compare": "⑧ 市場比較",
         "cmp_h": "市場を比較",
         "cmp_intro": "両市場の1年ファンを、今日からのリターン%で重ねて表示(水準が違うため: "
                      "S&P 約7,600 / 日経 約66,000)。幅が広いほど不確実。",
         "cmp_y": "今日からのリターン(%)",
+        "pc_h": "確率計算機",
+        "pc_intro": "{h}後の分布から、任意の確率を直接読み取れます。推定はモデルの5〜95%レンジに"
+                    "丸めています(その外側の裾は主張しません)。",
+        "pc_target": "目標の指数水準",
+        "pc_above": "{h}後に **{x} を上回る** 確率",
+        "pc_below": "{h}後に **{x} を下回る** 確率",
+        "pc_q_gain": "上昇(現値超え)",
+        "pc_q_loss10": "10%超の下落",
+        "pc_q_gain10": "10%超の上昇",
+        "pc_q_loss20": "20%超の下落",
+        "sc_h": "シナリオ — もし〜だったら?",
+        "sc_intro": "スライダーを動かすと、あなたの前提で{h}ファンを再描画します。形状(FHS)は"
+                    "保ったまま、中心・幅・出発点だけが変わります。",
+        "sc_cape": "CAPE(バリュエーション)",
+        "sc_vol": "ボラティリティ ×",
+        "sc_shock": "即時の価格ショック %",
+        "sc_jp_note": "日本にはCAPEバリュエーションのレバーがありません(価格のみのモデル) — ボラと即時ショックで調整してください。",
+        "sc_median": "シナリオ中央値",
+        "sc_range90": "シナリオ90%レンジ",
+        "sc_base": "ベース(現在の予測)",
+        "sc_scenario": "あなたのシナリオ",
         "caption": "{index} · {asof} 時点 · 現在値 {spot} · ドリフト = {drift} · ボラ = {vol} · 形状 = {shape}",
         "m_spot": "現在値",
         "m_median": "12ヶ月中央値",
@@ -642,12 +687,14 @@ else:
     st.markdown(t("plain", h=hlabel, **rkw))
 
 _tab_labels = list(t("tabs"))
+_tab_labels.append(t("tab_whatif"))                       # ⑦ always
 _show_compare = len(indices_obj) > 1
 if _show_compare:
-    _tab_labels.append(t("tab_compare"))
+    _tab_labels.append(t("tab_compare"))                  # ⑧ when >1 market
 _tabs = st.tabs(_tab_labels)
 tab1, tab2, tab3, tab4, tab5, tab6 = _tabs[:6]
-tab_cmp = _tabs[6] if _show_compare else None
+tab_whatif = _tabs[6]
+tab_cmp = _tabs[7] if _show_compare else None
 
 # ----------------------------------------------------------------- fan chart
 with tab1:
@@ -822,6 +869,84 @@ with tab6:
     st.subheader(t("mth_h"))
     st.markdown(t("mth_body"))
     st.caption(t("pwa_hint"))
+
+# ---------------------------------------------------------------- what-if (probability calc + scenario)
+with tab_whatif:
+  zg = leaf.get("z_grid")
+  if not zg:
+    st.info(t("tm_need"))
+  else:
+    mu0 = leaf["model"]["mu_log"]; sig0 = leaf["model"]["sigma"]; Hm = leaf["horizon_months"]
+    qg = [round(0.05 * i, 2) for i in range(1, 20)]          # 0.05..0.95, matches z_grid
+    z05, z25, z50, z75, z95 = zg[0], zg[4], zg[9], zg[14], zg[18]
+
+    def interp(xv, xs, ys):
+        if xv <= xs[0]: return ys[0]
+        if xv >= xs[-1]: return ys[-1]
+        for i in range(1, len(xs)):
+            if xv <= xs[i]:
+                f = (xv - xs[i - 1]) / (xs[i] - xs[i - 1])
+                return ys[i - 1] + f * (ys[i] - ys[i - 1])
+        return ys[-1]
+
+    # ---- probability calculator ----
+    st.subheader(t("pc_h"))
+    st.write(t("pc_intro", h=hlabel))
+    pgrid = [spot * math.exp(mu0 + sig0 * z) for z in zg]
+    default_x = float(round(spot / 100) * 100)
+    x = st.number_input(t("pc_target"), value=default_x, step=float(max(1, round(spot * 0.01))))
+    p_below = interp(x, pgrid, qg)
+    st.markdown(t("pc_above", x=f"{x:,.0f}", h=hlabel) + f" → **{(1 - p_below):.0%}**  ·  "
+                + t("pc_below", x=f"{x:,.0f}", h=hlabel) + f" → **{p_below:.0%}**")
+    b1, b2, b3, b4 = st.columns(4)
+    b1.metric(t("pc_q_gain"), f"{1 - interp(spot, pgrid, qg):.0%}")
+    b2.metric(t("pc_q_gain10"), f"{1 - interp(spot * 1.1, pgrid, qg):.0%}")
+    b3.metric(t("pc_q_loss10"), f"{interp(spot * 0.9, pgrid, qg):.0%}")
+    b4.metric(t("pc_q_loss20"), f"{interp(spot * 0.8, pgrid, qg):.0%}")
+
+    # ---- scenario sliders ----
+    st.divider()
+    st.subheader(t("sc_h"))
+    st.write(t("sc_intro", h=hlabel))
+    val = idx_obj.get("valuation"); lam = leaf["model"].get("lambda_used")
+    s1, s2, s3 = st.columns(3)
+    if val and lam is not None and not is_japan:
+        cape_h = s1.slider(t("sc_cape"), 10.0, 45.0, float(val["cape"]), 0.5)
+    else:
+        cape_h = None
+        s1.caption(t("sc_jp_note"))
+    vol_mult = s2.slider(t("sc_vol"), 0.5, 3.0, 1.0, 0.1)
+    shock = s3.slider(t("sc_shock"), -30, 30, 0, 1)
+
+    if cape_h is not None:
+        vg_base = math.log(val["cape_star"]) - math.log(val["cape"])
+        growth = mu0 - lam * vg_base                          # back out the (H-scaled) growth drift
+        mu_h = growth + lam * (math.log(val["cape_star"]) - math.log(cape_h))
+    else:
+        mu_h = mu0
+    sig_h = sig0 * vol_mult
+    spot_h = spot * (1 + shock / 100)
+    med0 = spot * math.exp(mu0 + sig0 * z50)
+    med_h = spot_h * math.exp(mu_h + sig_h * z50)
+    lo_h = spot_h * math.exp(mu_h + sig_h * z05); hi_h = spot_h * math.exp(mu_h + sig_h * z95)
+    m1, m2 = st.columns(2)
+    m1.metric(t("sc_median"), f"{med_h:,.0f}", f"{(med_h / med0 - 1) * 100:+.1f}% vs base")
+    m2.metric(t("sc_range90"), f"{lo_h:,.0f} – {hi_h:,.0f}")
+
+    months = list(range(0, Hm + 1))
+    def fan(sp_, mu_, sig_, zq): return [sp_ * math.exp(mu_ * k / Hm + sig_ * zq * math.sqrt(k / Hm)) for k in months]
+    figs = go.Figure()
+    figs.add_trace(go.Scatter(x=months, y=fan(spot, mu0, sig0, z95), line=dict(width=0), showlegend=False, hoverinfo="skip"))
+    figs.add_trace(go.Scatter(x=months, y=fan(spot, mu0, sig0, z05), fill="tonexty", fillcolor="rgba(140,140,140,0.12)",
+                              line=dict(width=0), showlegend=False, hoverinfo="skip"))
+    figs.add_trace(go.Scatter(x=months, y=fan(spot, mu0, sig0, z50), line=dict(color="grey", dash="dash"), name=t("sc_base")))
+    figs.add_trace(go.Scatter(x=months, y=fan(spot_h, mu_h, sig_h, z95), line=dict(width=0), showlegend=False, hoverinfo="skip"))
+    figs.add_trace(go.Scatter(x=months, y=fan(spot_h, mu_h, sig_h, z05), fill="tonexty", fillcolor="rgba(31,119,180,0.16)",
+                              line=dict(width=0), name=t("sc_scenario")))
+    figs.add_trace(go.Scatter(x=months, y=fan(spot_h, mu_h, sig_h, z50), line=dict(color="#1f77b4", width=2.5), showlegend=False))
+    figs.update_layout(height=420, xaxis_title=t("fan_x"), yaxis_title=t("fan_y"),
+                       margin=dict(t=20), hovermode="x unified", legend=dict(orientation="h", y=-0.2))
+    st.plotly_chart(figs, use_container_width=True)
 
 # ---------------------------------------------------------------- market compare
 if tab_cmp is not None:
