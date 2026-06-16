@@ -1,0 +1,20 @@
+name: tests
+
+# Reliability gate (PLAN §5.1): episode + acceptance tests run on every push/PR.
+# Uses the git-committed processed CSVs + app/forecast.json — NO data refetch (fast).
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.2.0   # match daily.yml (v8 has no floating major tag)
+      - name: Sync deps (incl. dev)
+        run: uv sync --dev
+      - name: Run reliability tests
+        run: uv run pytest -q -m "not slow"

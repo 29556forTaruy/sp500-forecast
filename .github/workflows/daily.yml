@@ -20,12 +20,16 @@ jobs:
       - uses: actions/checkout@v6
       - name: Install uv
         uses: astral-sh/setup-uv@v8.2.0  # setup-uvはv8の浮動メジャータグ未発行のため正確版を固定
-      - name: Sync deps
-        run: uv sync
+      - name: Sync deps (incl. dev for the reliability tests)
+        run: uv sync --dev
       - name: Fetch data (Shiller / FRED / yfinance)
         run: uv run python fetch_sp500_data.py
       - name: Generate forecast
         run: uv run python forecast.py
+        env:
+          STRICT_COVERAGE: "1"   # block the commit if the 12m fan coverage drifts out of [0.86, 0.94]
+      - name: Reliability tests before shipping (episode / acceptance / coverage gates)
+        run: uv run pytest -q -m "not slow"
       - name: Commit refreshed forecast (JSON only — CSVs are regenerated each run)
         run: |
           git config user.name "github-actions[bot]"

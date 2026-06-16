@@ -21,6 +21,7 @@ Run: uv run python forecast.py   (the GitHub Actions daily job runs exactly this
 """
 
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -541,6 +542,15 @@ def main():
         "case_studies": mirror12["case_studies"],
     }
     (APP / "forecast.json").write_text(json.dumps(forecast, indent=2))
+
+    # coverage gate (PLAN §5.1 #5): the shipped 12m FHS fan must cover ~90% walk-forward.
+    # warn locally; the daily CI sets STRICT_COVERAGE=1 to make a drift out of band BLOCK the commit.
+    _gate = mirror12["calibration"]["cover90"]
+    if not (0.86 <= _gate <= 0.94):
+        _msg = f"12m cover90={_gate} outside calibration gate [0.86, 0.94]"
+        if os.environ.get("STRICT_COVERAGE"):
+            raise SystemExit(f"COVERAGE GATE FAILED: {_msg}")
+        print(f"WARNING: {_msg}")
 
     us_hit = np.mean([h["in90"] for h in hist12]) if hist12 else float("nan")
     hist_indices = {"SP500": {"n": len(hist12), "hit_rate_90": round(float(us_hit), 3), "records": hist12}}
