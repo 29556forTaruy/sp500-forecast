@@ -170,6 +170,21 @@ T = {
                           "≈ **{v}%/yr** as it slowly normalizes; add ≈ **{d}%/yr** of dividends → an "
                           "expected total return of ≈ **{tot}%/yr**. (This is the *mean* drift — the "
                           "fan's median sits higher because of skew; the price fan itself excludes dividends.)",
+        "alt_h": "Stocks vs bonds vs cash",
+        "alt_intro": "Expected annual returns over the long run (10y). Honest caveats: the bond yield "
+                     "is the expected *nominal* return only if held to maturity; the equity number is "
+                     "the CAPE-anchored 10-year total return and rests on few independent windows.",
+        "alt_equity": "Equity (10y, total)", "alt_bond": "10y Treasury", "alt_cash": "Cash (Fed funds)",
+        "alt_note": "Equity risk premium over the 10y bond ≈ **{erp}%/yr** — thin by historical "
+                    "standards. (The 10y TIPS real yield is {tips}%.)",
+        "risk_h": "Downside risk",
+        "risk_intro": "Tail metrics read off the {h} distribution (the deep tail beyond 5% uses the FHS residual pool).",
+        "risk_bear": "Bear market (≤ -20%)", "risk_var": "Value-at-Risk (5%)",
+        "risk_es": "Expected shortfall (worst 5%)", "risk_underperf": "Underperform the 10y bond",
+        "risk_caption": "VaR(5%) = the 5%-worst return; Expected Shortfall = the *average* of the "
+                        "worst 5% (deeper than VaR). 'Underperform the bond' compares the equity price "
+                        "fan to a 10y Treasury held to maturity — the fan excludes dividends, so it's a "
+                        "touch pessimistic for equities.",
         "fan_info": (
             "Walk-forward calibrated {w0}–{w1} (n={n}): the 80% band historically covered "
             "{c80} and the 90% band {c90} of outcomes (targets 80% / 90%). Drift = Level-0 "
@@ -459,6 +474,18 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
         "decomp_caption": "実質利益は年率 ≈ **{g}%** 成長しますが、現在の極端なCAPEが緩やかに正常化する分 "
                           "≈ **{v}%/年** を差し引きます。配当 ≈ **{d}%/年** を足すと、期待トータルリターンは "
                           "≈ **{tot}%/年**。(これは*平均*ドリフト — ファンの中央値は歪みのため上。価格ファン自体は配当を含みません。)",
+        "alt_h": "株 vs 債券 vs 現金",
+        "alt_intro": "長期(10年)の期待年率リターン。正直な注意:債券利回りは満期保有した場合の期待*名目*"
+                     "リターン、株式はCAPE根拠の10年トータルリターンで独立窓が少ない。",
+        "alt_equity": "株式(10年・トータル)", "alt_bond": "米10年債", "alt_cash": "現金(FF金利)",
+        "alt_note": "10年債に対する株式リスクプレミアムは ≈ **{erp}%/年** — 歴史的に薄い。"
+                    "(10年TIPSの実質利回りは {tips}%。)",
+        "risk_h": "ダウンサイドリスク",
+        "risk_intro": "{h}の分布から読む裾リスク指標(5%より深い裾はFHS残差プールを使用)。",
+        "risk_bear": "弱気相場(-20%以下)", "risk_var": "バリュー・アット・リスク(5%)",
+        "risk_es": "期待ショートフォール(最悪5%)", "risk_underperf": "10年債に負ける",
+        "risk_caption": "VaR(5%)=下位5%のリターン、期待ショートフォール=最悪5%の*平均*(VaRより深い)。"
+                        "「債券に負ける」は株式の価格ファンと満期保有の10年債を比較 — ファンは配当を含まないので株にやや厳しめ。",
         "fan_info": (
             "ウォークフォワード較正 {w0}〜{w1}(n={n}):過去において80%帯は実際の {c80}、"
             "90%帯は {c90} の結果を含みました(目標 80% / 90%)。ドリフト = Level 0 構造アンカー、"
@@ -903,6 +930,16 @@ with tab1:
         st.plotly_chart(figd, use_container_width=True)
         st.caption(t("decomp_caption", g=f"{_g:.1f}", v=f"{_v:.1f}", d=f"{_d:.1f}", tot=f"{_g + _v + _d:.1f}"))
 
+    alt = idx_obj.get("alternatives")
+    if alt and not is_japan and alt.get("equity_total_annual_pct") is not None:
+        st.markdown(f"**{t('alt_h')}**")
+        st.caption(t("alt_intro"))
+        a1, a2, a3 = st.columns(3)
+        a1.metric(t("alt_equity"), f"{alt['equity_total_annual_pct']:+.1f}%/yr")
+        a2.metric(t("alt_bond"), f"{alt['bond_10y_pct']:.1f}%/yr")
+        a3.metric(t("alt_cash"), f"{alt['cash_pct']:.1f}%/yr")
+        st.caption(t("alt_note", erp=f"{alt['erp_vs_bond_pct']:+.1f}", tips=f"{alt['tips_10y_real_pct']:.1f}"))
+
 # ---------------------------------------------------------------- heatmap
 with tab2:
   if not indicators_data:
@@ -1088,6 +1125,25 @@ with tab_whatif:
     b2.metric(t("pc_q_gain10"), f"{1 - interp(spot * 1.1, pgrid, qg):.0%}")
     b3.metric(t("pc_q_loss10"), f"{interp(spot * 0.9, pgrid, qg):.0%}")
     b4.metric(t("pc_q_loss20"), f"{interp(spot * 0.8, pgrid, qg):.0%}")
+
+    # ---- downside risk (from the same FHS distribution) ----
+    st.divider()
+    st.subheader(t("risk_h"))
+    st.write(t("risk_intro", h=hlabel))
+    _var5 = (math.exp(mu0 + sig0 * z05) - 1) * 100                       # 5% worst return
+    _zt = leaf.get("z_tail")
+    _es_zs = [_zt["p01"], _zt["p025"], z05] if _zt else [z05]            # average of the worst ~5%
+    _es5 = sum(math.exp(mu0 + sig0 * z) - 1 for z in _es_zs) / len(_es_zs) * 100
+    _alt = idx_obj.get("alternatives"); _und = None
+    if _alt and _alt.get("bond_10y_pct") is not None:
+        _bond_log = (_alt["bond_10y_pct"] / 100.0) * (Hm / 12.0)         # bond total return over H, held to maturity
+        _und = interp(spot * math.exp(_bond_log), pgrid, qg)
+    g1, g2, g3, g4 = st.columns(4)
+    g1.metric(t("risk_bear"), f"{interp(spot * 0.8, pgrid, qg):.0%}")
+    g2.metric(t("risk_var"), f"{_var5:+.1f}%")
+    g3.metric(t("risk_es"), f"{_es5:+.1f}%")
+    g4.metric(t("risk_underperf"), f"{_und:.0%}" if _und is not None else "—")
+    st.caption(t("risk_caption"))
 
     # ---- scenario sliders ----
     st.divider()

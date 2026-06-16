@@ -413,6 +413,8 @@ def japan_index_block(nk):
             "return_quantiles_pct": {str(q): round((np.exp(mu_L + sigma_L * np.quantile(zpool, q)) - 1) * 100, 1) for q in QS},
             "price_quantiles": {str(q): round(v, 1) for q, v in q12.items()},
             "z_grid": [round(float(z), 4) for z in np.quantile(zpool, QGRID)],  # FHS shape for the probability calc / scenarios
+            "z_tail": {"p01": round(float(np.quantile(zpool, 0.01)), 4),       # deep left tail for VaR / expected shortfall
+                       "p025": round(float(np.quantile(zpool, 0.025)), 4)},
             "fan_path": {"months": months.tolist(),
                          **{f"q{int(q*100):02d}": [round(x, 1) for x in bands[q]] for q in QS}},
             "calibration": {"window": [str(dates[common].min().date()), str(dates[common].max().date())],
@@ -494,6 +496,8 @@ def main():
             "return_quantiles_pct": {str(q): round((np.exp(mu_L + sigma_L * np.quantile(zpool, q)) - 1) * 100, 1) for q in QS},
             "price_quantiles": {str(q): round(v, 1) for q, v in q12.items()},
             "z_grid": [round(float(z), 4) for z in np.quantile(zpool, QGRID)],  # FHS shape for the probability calc / scenarios
+            "z_tail": {"p01": round(float(np.quantile(zpool, 0.01)), 4),       # deep left tail for VaR / expected shortfall
+                       "p025": round(float(np.quantile(zpool, 0.025)), 4)},
             "fan_path": {"months": months.tolist(),
                          **{f"q{int(q*100):02d}": [round(x, 1) for x in bands[q]] for q in QS}},
             "calibration": {"window": [str(dates[common].min().date()), str(dates[common].max().date())],
@@ -556,8 +560,25 @@ def main():
     valuation = {"cape": round(float(np.exp(_last["log_cape"])), 1),
                  "cape_star": round(float(np.exp(_last["log_cape"] + _last["val_gap"])), 1),
                  "g_annual": round(float(_last["g20_e10n"]), 4)}
-    indices = {"SP500": {"label": "S&P 500", "spot": round(P0_top, 1),
-                         "indicators": indicators, "horizons": blocks, "valuation": valuation}}
+
+    # stocks vs bonds vs cash (expected-return context). bond yield ≈ expected nominal
+    # return if held to maturity; equity = the CAPE-anchored 10y view + dividend income.
+    def _latest(col):
+        s = master.set_index("date")[col].dropna()
+        return (round(float(s.iloc[-1]), 2), str(s.index[-1].date())) if not s.empty else (None, None)
+    _bond, _bond_asof = _latest("DGS10")
+    _cash, _ = _latest("FEDFUNDS")
+    _tips, _ = _latest("DFII10")
+    _eq_price = blocks.get("120mo", {}).get("long_run", {}).get("expected_annualized_pct")
+    _eq_total = round(_eq_price + div_y, 2) if (_eq_price is not None and div_y is not None) else None
+    alternatives = {
+        "asof": _bond_asof, "equity_horizon": "120mo",
+        "equity_price_annual_pct": _eq_price, "dividend_yield_pct": div_y, "equity_total_annual_pct": _eq_total,
+        "bond_10y_pct": _bond, "cash_pct": _cash, "tips_10y_real_pct": _tips,
+        "erp_vs_bond_pct": round(_eq_total - _bond, 2) if (_eq_total is not None and _bond is not None) else None,
+    }
+    indices = {"SP500": {"label": "S&P 500", "spot": round(P0_top, 1), "indicators": indicators,
+                         "horizons": blocks, "valuation": valuation, "alternatives": alternatives}}
     nk_path = OUT / "nikkei_daily.csv"
     jp_hist = None
     if nk_path.exists():
