@@ -43,8 +43,12 @@ HORIZONS = [
     {"key": "3mo",   "H": 3,   "prior": 0.03, "cap": 0.20, "shrink": 0.5,  "min_cal": 120, "tier": "core"},
     {"key": "6mo",   "H": 6,   "prior": 0.05, "cap": 0.25, "shrink": 0.5,  "min_cal": 120, "tier": "core"},
     {"key": "12mo",  "H": 12,  "prior": 0.10, "cap": 0.35, "shrink": 0.5,  "min_cal": 120, "tier": "core"},
+    {"key": "24mo",  "H": 24,  "prior": 0.18, "cap": 0.45, "shrink": 0.5,  "min_cal": 120, "tier": "core"},
+    {"key": "36mo",  "H": 36,  "prior": 0.25, "cap": 0.55, "shrink": 0.4,  "min_cal": 96,  "tier": "core"},
     {"key": "60mo",  "H": 60,  "prior": 0.45, "cap": 0.80, "shrink": 0.25, "min_cal": 60,  "tier": "long-run"},
     {"key": "120mo", "H": 120, "prior": 0.65, "cap": 1.00, "shrink": 0.25, "min_cal": 48,  "tier": "long-run"},
+    {"key": "180mo", "H": 180, "prior": 0.75, "cap": 1.00, "shrink": 0.25, "min_cal": 40,  "tier": "long-run"},
+    {"key": "240mo", "H": 240, "prior": 0.85, "cap": 1.00, "shrink": 0.25, "min_cal": 36,  "tier": "long-run"},
 ]
 
 # indicator panel: (master column, label, "high value =" direction for equities)
@@ -355,7 +359,7 @@ def japan_index_block(nk):
              "garch": pd.Series(vol_raw_garch(rm), index=df["date"])}
     P0 = float(df["close"].iloc[-1])
     hblocks = {}; hist_records = []
-    for spec in [s for s in HORIZONS if s["tier"] == "core"]:
+    for spec in [s for s in HORIZONS if s["tier"] == "core" and s["H"] <= 12]:  # Japan history is short; keep its solid range
         H = spec["H"]; key = spec["key"]
         res = japan_neutral_wf(df, raw_s, spec)
         if res is None:

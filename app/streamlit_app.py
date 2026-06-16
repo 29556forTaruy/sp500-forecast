@@ -618,8 +618,12 @@ HZ_LABEL = {
     "3mo":   {"en": "3 months", "ja": "3か月"},
     "6mo":   {"en": "6 months", "ja": "6か月"},
     "12mo":  {"en": "1 year",   "ja": "1年"},
+    "24mo":  {"en": "2 years",  "ja": "2年"},
+    "36mo":  {"en": "3 years",  "ja": "3年"},
     "60mo":  {"en": "5 years",  "ja": "5年"},
     "120mo": {"en": "10 years", "ja": "10年"},
+    "180mo": {"en": "15 years", "ja": "15年"},
+    "240mo": {"en": "20 years", "ja": "20年"},
 }
 
 # ============================================================ language toggle
@@ -740,7 +744,7 @@ with tab1:
     st.plotly_chart(fig, use_container_width=True)
     if is_long:
         _ci = cal.get("cover90_ci")
-        _ci_s = f"{_ci[0]:.0%}–{_ci[1]:.0%}" if _ci else "—"
+        _ci_s = f"{_ci[0]:.0%}–{_ci[1]:.0%}" if _ci and (_ci[1] - _ci[0]) >= 0.02 else "—"
         st.warning(t("fan_info_long", h=hlabel, neff=cal.get("n_eff", "?"),
                      c90=f"{cal['cover90']:.0%}", ci=_ci_s))
     else:
