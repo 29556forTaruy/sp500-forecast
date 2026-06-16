@@ -65,6 +65,13 @@ T = {
         "sc_cape": "CAPE (valuation)",
         "sc_vol": "Volatility ×",
         "sc_shock": "Immediate price shock %",
+        "sc_cape_help": "Where CAPE (the 10-year P/E) starts. Higher = more expensive, so the "
+                        "valuation anchor pulls the drift down; lower = cheaper, drift up. "
+                        "Default is today's value.",
+        "sc_vol_help": "Multiplier on the fan width. 1.0 = the model's current GARCH volatility; "
+                       "2.0 = twice as turbulent (wider fan); 0.5 = half (tighter fan).",
+        "sc_shock_help": "An instant one-off price move applied today, before the fan is drawn — "
+                         "e.g. −20% simulates a crash right now, then forecasts from the new level.",
         "sc_jp_note": "Japan has no CAPE valuation lever (price-only model) — adjust volatility and the immediate shock.",
         "sc_median": "scenario median",
         "sc_range90": "scenario 90% range",
@@ -319,6 +326,12 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
         "sc_cape": "CAPE(バリュエーション)",
         "sc_vol": "ボラティリティ ×",
         "sc_shock": "即時の価格ショック %",
+        "sc_cape_help": "出発点の CAPE(10年PER)。高い=割高で、バリュエーション・アンカーが"
+                        "ドリフトを押し下げます(低い=割安でドリフト上昇)。既定は現在値。",
+        "sc_vol_help": "ファン幅の倍率。1.0=現在のGARCHボラ、2.0=2倍荒れる(幅が広がる)、"
+                       "0.5=半分(幅が狭まる)。",
+        "sc_shock_help": "ファンを描く前に、今日その場で起きる一回限りの価格変動。"
+                         "例:−20%は今クラッシュした想定で、その水準から予測します。",
         "sc_jp_note": "日本にはCAPEバリュエーションのレバーがありません(価格のみのモデル) — ボラと即時ショックで調整してください。",
         "sc_median": "シナリオ中央値",
         "sc_range90": "シナリオ90%レンジ",
@@ -927,12 +940,12 @@ with tab_whatif:
     val = idx_obj.get("valuation"); lam = leaf["model"].get("lambda_used")
     s1, s2, s3 = st.columns(3)
     if val and lam is not None and not is_japan:
-        cape_h = s1.slider(t("sc_cape"), 10.0, 45.0, float(val["cape"]), 0.5)
+        cape_h = s1.slider(t("sc_cape"), 10.0, 45.0, float(val["cape"]), 0.5, help=t("sc_cape_help"))
     else:
         cape_h = None
         s1.caption(t("sc_jp_note"))
-    vol_mult = s2.slider(t("sc_vol"), 0.5, 3.0, 1.0, 0.1)
-    shock = s3.slider(t("sc_shock"), -30, 30, 0, 1)
+    vol_mult = s2.slider(t("sc_vol"), 0.5, 3.0, 1.0, 0.1, help=t("sc_vol_help"))
+    shock = s3.slider(t("sc_shock"), -30, 30, 0, 1, help=t("sc_shock_help"))
 
     if cape_h is not None:
         vg_base = math.log(val["cape_star"]) - math.log(val["cape"])
