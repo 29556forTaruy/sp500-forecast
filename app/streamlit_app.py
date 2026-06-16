@@ -9,7 +9,10 @@ Run: uv run streamlit run app/streamlit_app.py
 
 import json
 import math
+import time
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -38,6 +41,38 @@ def load():
     except FileNotFoundError:
         bench = None        # leaderboard not built yet — the ⑧ tab degrades gracefully
     return fc, hist, bench
+
+
+LIVE_TTL = 600                                   # live-price cache lifetime + auto-refresh cadence (~10 min)
+YF_SYM = {"SP500": "^GSPC", "N225": "^N225"}     # Yahoo symbols for the live anchor price
+
+
+@st.cache_data(ttl=LIVE_TTL, show_spinner=False)
+def fetch_live_spot(sym):
+    """Latest index level for live re-anchoring. Primary = Yahoo's lightweight
+    chart-meta JSON via curl_cffi (impersonate=chrome to clear the WAF, same trick
+    the FRED fetcher uses); fallback = yfinance's last valid daily close. Returns
+    {"price", "ts"} or None — on None the app keeps the daily-batch spot."""
+    if not sym:
+        return None
+    try:
+        from curl_cffi import requests as creq
+        r = creq.get(f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}"
+                     "?range=1d&interval=1d", impersonate="chrome", timeout=8)
+        meta = r.json()["chart"]["result"][0]["meta"]
+        px, ts = meta.get("regularMarketPrice"), meta.get("regularMarketTime")
+        if px and float(px) > 0:
+            return {"price": float(px), "ts": int(ts) if ts else None}
+    except Exception:
+        pass
+    try:
+        import yfinance as yf
+        s = yf.Ticker(sym).history(period="5d", interval="1d")["Close"].dropna()
+        if len(s):
+            return {"price": float(s.iloc[-1]), "ts": int(s.index[-1].timestamp())}
+    except Exception:
+        pass
+    return None
 
 
 # ============================================================ i18n strings
@@ -118,6 +153,11 @@ T = {
                             "the Nikkei (no valuation lever) it just rescales proportionally.",
         "spot_update_note": "↻ Re-anchored to your price (model data as of {asof}; stored spot was "
                             "{old}). Drift / volatility / shape are from the last daily run.",
+        "spot_live": "🟢 Live {price} · last trade {when} JST · auto-refreshes ~every {mins} min",
+        "spot_refresh": "🔄 Refresh",
+        "spot_manual": "Set the price manually",
+        "spot_live_fail": "Live price unavailable — using the daily-batch level {spot}. "
+                          "Type the current level to re-anchor.",
         "sel_horizon": "Horizon",
         "sel_index": "Market",
         "jp_caveat": (
@@ -434,6 +474,11 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
                             "日経(バリュエーション・レバー無し)は比例して動くだけです。",
         "spot_update_note": "↻ あなたの入力値に再アンカー(モデルのデータは {asof} 時点、元の現在値は "
                             "{old})。ドリフト/ボラ/形状は直近の日次実行値です。",
+        "spot_live": "🟢 ライブ {price} · 最終取引 {when} JST · 約{mins}分ごとに自動更新",
+        "spot_refresh": "🔄 更新",
+        "spot_manual": "価格を手動で指定",
+        "spot_live_fail": "ライブ価格を取得できませんでした — 日次バッチ値 {spot} を使用中。"
+                          "現在値を入力すると再アンカーします。",
         "sel_horizon": "予測期間",
         "sel_index": "市場",
         "jp_caveat": (
@@ -856,12 +901,45 @@ q = leaf["price_quantiles"]; rq = leaf["return_quantiles_pct"]; cal = leaf["cali
 is_long = leaf.get("tier") == "long-run"
 hlabel = hz_label(hz)
 
-# live re-anchor: punch in the current price and the whole fan re-anchors to it.
-# S&P (λ>0): a rise pulls the drift down (valuation, d ln P̂/d ln C = 1-λ); Nikkei (λ=0): pure rescale.
+# live re-anchor: the anchor price auto-fetches the latest level and refreshes on a timer,
+# and the whole fan re-anchors to it. S&P (λ>0): a rise pulls the drift down (valuation,
+# d ln P̂/d ln C = 1-λ); Nikkei (λ=0): pure rescale. spot_json stays the batch anchor.
 spot_json = float(idx_obj["spot"])
 _zg = leaf.get("z_grid")
-spot = st.number_input(t("spot_update"), value=spot_json, step=float(max(1.0, round(spot_json * 0.001))),
-                       help=t("spot_update_help"))
+
+# gentle whole-app rerun every LIVE_TTL so an idle screen re-anchors to a fresh price.
+# clock-guarded → the rerun fires at most once per interval (never an infinite loop).
+if "_live_fetched_at" not in st.session_state:
+    st.session_state["_live_fetched_at"] = time.time()
+
+
+@st.fragment(run_every=60)
+def _live_auto_refresh():
+    if time.time() - st.session_state["_live_fetched_at"] >= LIVE_TTL:
+        st.session_state["_live_fetched_at"] = time.time()
+        fetch_live_spot.clear()
+        st.rerun(scope="app")
+
+
+_live_auto_refresh()
+
+live = fetch_live_spot(YF_SYM.get(idx_key))
+manual = st.toggle(t("spot_manual"), value=False) if live else True
+if manual:
+    spot = st.number_input(t("spot_update"),
+                           value=float(live["price"]) if live else spot_json,
+                           step=float(max(1.0, round(spot_json * 0.001))), help=t("spot_update_help"))
+    if not live:
+        st.caption(t("spot_live_fail", spot=f"{spot_json:,.0f}"))
+else:
+    spot = float(live["price"])
+    _lc, _bc = st.columns([5, 1])
+    _ts = live.get("ts")
+    _when = datetime.fromtimestamp(_ts, ZoneInfo("Asia/Tokyo")).strftime("%m/%d %H:%M") if _ts else "—"
+    _lc.caption(t("spot_live", price=f"{spot:,.0f}", when=_when, mins=LIVE_TTL // 60))
+    if _bc.button(t("spot_refresh"), use_container_width=True):
+        fetch_live_spot.clear(); st.session_state["_live_fetched_at"] = time.time(); st.rerun()
+
 mu_anch = float(m["mu_log"]); _sig = float(m["sigma"]); fan_disp = leaf["fan_path"]
 if _zg and abs(spot - spot_json) > 1e-6 and spot_json > 0 and spot > 0:
     mu_anch = float(m["mu_log"]) - float(m.get("lambda_used", 0.0)) * math.log(spot / spot_json)
@@ -872,7 +950,8 @@ if _zg and abs(spot - spot_json) > 1e-6 and spot_json > 0 and spot > 0:
     fan_disp = {"months": _mm, **{f"q{int(float(k)*100):02d}":
                 [round(spot * math.exp(mu_anch * kk / _Hm + _sig * _zg[i] * math.sqrt(kk / _Hm)), 1) for kk in _mm]
                 for k, i in _zi.items()}}
-    st.caption(t("spot_update_note", old=f"{spot_json:,.0f}", asof=fc["asof"]))
+    if manual:
+        st.caption(t("spot_update_note", old=f"{spot_json:,.0f}", asof=fc["asof"]))
 
 st.caption(t("caption", index=idx_obj["label"], asof=fc["asof"], spot=f"{spot:,.0f}",
               drift=mlabel(m["drift"]), vol=mlabel(m["vol"]), shape=mlabel(m["shape"])))
