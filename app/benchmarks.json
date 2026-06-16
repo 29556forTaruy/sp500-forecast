@@ -1,0 +1,728 @@
+{
+  "schema_version": 1,
+  "asof": "2026-06-30",
+  "reference": "historical_mean",
+  "indices": {
+    "SP500": {
+      "label": "S&P 500",
+      "horizons": {
+        "12mo": {
+          "horizon_months": 12,
+          "point": [
+            {
+              "model": "level0",
+              "oos_r2": 0.081,
+              "oos_r2_post1950": 0.037,
+              "cw_t": 3.54,
+              "cw_p": 0.0,
+              "dir_hit": 0.719,
+              "verdict": "beats_mean",
+              "n": 1244,
+              "n_eff": 103,
+              "window": [
+                "1921-11-30",
+                "2025-06-30"
+              ]
+            },
+            {
+              "model": "drift_only",
+              "oos_r2": 0.063,
+              "oos_r2_post1950": 0.05,
+              "cw_t": 4.1,
+              "cw_p": 0.0,
+              "dir_hit": 0.709,
+              "verdict": "beats_mean",
+              "n": 1244,
+              "n_eff": 103,
+              "window": [
+                "1921-11-30",
+                "2025-06-30"
+              ]
+            },
+            {
+              "model": "cape_yield",
+              "oos_r2": 0.02,
+              "oos_r2_post1950": -0.08,
+              "cw_t": 1.73,
+              "cw_p": 0.042,
+              "dir_hit": 0.639,
+              "verdict": "beats_mean",
+              "n": 1244,
+              "n_eff": 103,
+              "window": [
+                "1921-11-30",
+                "2025-06-30"
+              ]
+            },
+            {
+              "model": "earn_yield",
+              "oos_r2": 0.008,
+              "oos_r2_post1950": -0.042,
+              "cw_t": 1.5,
+              "cw_p": 0.067,
+              "dir_hit": 0.633,
+              "verdict": "tie",
+              "n": 1244,
+              "n_eff": 103,
+              "window": [
+                "1921-11-30",
+                "2025-06-30"
+              ]
+            },
+            {
+              "model": "hist_mean",
+              "oos_r2": 0.0,
+              "oos_r2_post1950": 0.0,
+              "cw_t": null,
+              "cw_p": null,
+              "dir_hit": 0.678,
+              "verdict": "reference",
+              "n": 1244,
+              "n_eff": 103,
+              "window": [
+                "1921-11-30",
+                "2025-06-30"
+              ]
+            },
+            {
+              "model": "term_spread",
+              "oos_r2": -0.007,
+              "oos_r2_post1950": -0.007,
+              "cw_t": 0.67,
+              "cw_p": 0.252,
+              "dir_hit": 0.797,
+              "verdict": "loses_to_mean",
+              "n": 458,
+              "n_eff": 38,
+              "window": [
+                "1987-05-31",
+                "2025-06-30"
+              ]
+            },
+            {
+              "model": "div_yield",
+              "oos_r2": -0.016,
+              "oos_r2_post1950": -0.098,
+              "cw_t": 0.79,
+              "cw_p": 0.215,
+              "dir_hit": 0.647,
+              "verdict": "loses_to_mean",
+              "n": 1244,
+              "n_eff": 103,
+              "window": [
+                "1921-11-30",
+                "2025-06-30"
+              ]
+            },
+            {
+              "model": "rw_zero",
+              "oos_r2": -0.057,
+              "oos_r2_post1950": -0.186,
+              "cw_t": -0.48,
+              "cw_p": 0.315,
+              "dir_hit": 0.0,
+              "verdict": "loses_to_mean",
+              "n": 1244,
+              "n_eff": 103,
+              "window": [
+                "1921-11-30",
+                "2025-06-30"
+              ]
+            },
+            {
+              "model": "goyal_welch",
+              "oos_r2": -0.288,
+              "oos_r2_post1950": -0.288,
+              "cw_t": -1.46,
+              "cw_p": 0.072,
+              "dir_hit": 0.662,
+              "verdict": "loses_to_mean",
+              "n": 458,
+              "n_eff": 38,
+              "window": [
+                "1987-05-31",
+                "2025-06-30"
+              ]
+            }
+          ],
+          "distribution": [
+            {
+              "model": "garch_fhs",
+              "pinball": 0.044,
+              "cover90": 0.895,
+              "pit_ks": 0.053,
+              "n": 982,
+              "verdict": "best"
+            },
+            {
+              "model": "historical",
+              "pinball": 0.0446,
+              "cover90": 0.97,
+              "pit_ks": 0.078,
+              "n": 982
+            },
+            {
+              "model": "gaussian",
+              "pinball": 0.0452,
+              "cover90": 0.93,
+              "pit_ks": 0.158,
+              "n": 982
+            },
+            {
+              "model": "student_t",
+              "pinball": 0.0452,
+              "cover90": 0.918,
+              "pit_ks": 0.165,
+              "n": 982
+            }
+          ],
+          "headline": {
+            "valuation_increment": 0.018,
+            "valuation_increment_post1950": -0.013,
+            "n_predictors_beating_mean": 1,
+            "n_predictors": 5,
+            "n_eff": 103,
+            "dist_best": "garch_fhs"
+          }
+        },
+        "36mo": {
+          "horizon_months": 36,
+          "point": [
+            {
+              "model": "level0",
+              "oos_r2": 0.166,
+              "oos_r2_post1950": 0.142,
+              "cw_t": 4.24,
+              "cw_p": 0.0,
+              "dir_hit": 0.814,
+              "verdict": "beats_mean",
+              "n": 1196,
+              "n_eff": 33,
+              "window": [
+                "1923-11-30",
+                "2023-06-30"
+              ]
+            },
+            {
+              "model": "drift_only",
+              "oos_r2": 0.143,
+              "oos_r2_post1950": 0.144,
+              "cw_t": 4.14,
+              "cw_p": 0.0,
+              "dir_hit": 0.791,
+              "verdict": "beats_mean",
+              "n": 1196,
+              "n_eff": 33,
+              "window": [
+                "1923-11-30",
+                "2023-06-30"
+              ]
+            },
+            {
+              "model": "cape_yield",
+              "oos_r2": 0.025,
+              "oos_r2_post1950": -0.232,
+              "cw_t": 1.69,
+              "cw_p": 0.046,
+              "dir_hit": 0.736,
+              "verdict": "beats_mean",
+              "n": 1196,
+              "n_eff": 33,
+              "window": [
+                "1923-11-30",
+                "2023-06-30"
+              ]
+            },
+            {
+              "model": "earn_yield",
+              "oos_r2": 0.015,
+              "oos_r2_post1950": -0.146,
+              "cw_t": 1.72,
+              "cw_p": 0.043,
+              "dir_hit": 0.713,
+              "verdict": "beats_mean",
+              "n": 1196,
+              "n_eff": 33,
+              "window": [
+                "1923-11-30",
+                "2023-06-30"
+              ]
+            },
+            {
+              "model": "term_spread",
+              "oos_r2": 0.002,
+              "oos_r2_post1950": 0.002,
+              "cw_t": 1.41,
+              "cw_p": 0.079,
+              "dir_hit": 0.829,
+              "verdict": "tie",
+              "n": 410,
+              "n_eff": 11,
+              "window": [
+                "1989-05-31",
+                "2023-06-30"
+              ]
+            },
+            {
+              "model": "hist_mean",
+              "oos_r2": 0.0,
+              "oos_r2_post1950": 0.0,
+              "cw_t": null,
+              "cw_p": null,
+              "dir_hit": 0.762,
+              "verdict": "reference",
+              "n": 1196,
+              "n_eff": 33,
+              "window": [
+                "1923-11-30",
+                "2023-06-30"
+              ]
+            },
+            {
+              "model": "div_yield",
+              "oos_r2": -0.023,
+              "oos_r2_post1950": -0.294,
+              "cw_t": 1.1,
+              "cw_p": 0.135,
+              "dir_hit": 0.719,
+              "verdict": "loses_to_mean",
+              "n": 1196,
+              "n_eff": 33,
+              "window": [
+                "1923-11-30",
+                "2023-06-30"
+              ]
+            },
+            {
+              "model": "rw_zero",
+              "oos_r2": -0.176,
+              "oos_r2_post1950": -0.573,
+              "cw_t": -0.83,
+              "cw_p": 0.202,
+              "dir_hit": 0.0,
+              "verdict": "loses_to_mean",
+              "n": 1196,
+              "n_eff": 33,
+              "window": [
+                "1923-11-30",
+                "2023-06-30"
+              ]
+            },
+            {
+              "model": "goyal_welch",
+              "oos_r2": -0.555,
+              "oos_r2_post1950": -0.555,
+              "cw_t": -1.03,
+              "cw_p": 0.152,
+              "dir_hit": 0.8,
+              "verdict": "loses_to_mean",
+              "n": 410,
+              "n_eff": 11,
+              "window": [
+                "1989-05-31",
+                "2023-06-30"
+              ]
+            }
+          ],
+          "distribution": [
+            {
+              "model": "garch_fhs",
+              "pinball": 0.0728,
+              "cover90": 0.817,
+              "pit_ks": 0.062,
+              "n": 934,
+              "verdict": "best"
+            },
+            {
+              "model": "historical",
+              "pinball": 0.0732,
+              "cover90": 0.942,
+              "pit_ks": 0.101,
+              "n": 934
+            },
+            {
+              "model": "student_t",
+              "pinball": 0.0746,
+              "cover90": 0.89,
+              "pit_ks": 0.222,
+              "n": 934
+            },
+            {
+              "model": "gaussian",
+              "pinball": 0.0751,
+              "cover90": 0.907,
+              "pit_ks": 0.215,
+              "n": 934
+            }
+          ],
+          "headline": {
+            "valuation_increment": 0.023,
+            "valuation_increment_post1950": -0.002,
+            "n_predictors_beating_mean": 2,
+            "n_predictors": 5,
+            "n_eff": 33,
+            "dist_best": "garch_fhs"
+          }
+        },
+        "60mo": {
+          "horizon_months": 60,
+          "point": [
+            {
+              "model": "level0",
+              "oos_r2": 0.152,
+              "oos_r2_post1950": 0.246,
+              "cw_t": 3.63,
+              "cw_p": 0.0,
+              "dir_hit": 0.768,
+              "verdict": "beats_mean",
+              "n": 1148,
+              "n_eff": 19,
+              "window": [
+                "1925-11-30",
+                "2021-06-30"
+              ]
+            },
+            {
+              "model": "drift_only",
+              "oos_r2": 0.107,
+              "oos_r2_post1950": 0.209,
+              "cw_t": 3.26,
+              "cw_p": 0.001,
+              "dir_hit": 0.76,
+              "verdict": "beats_mean",
+              "n": 1148,
+              "n_eff": 19,
+              "window": [
+                "1925-11-30",
+                "2021-06-30"
+              ]
+            },
+            {
+              "model": "hist_mean",
+              "oos_r2": 0.0,
+              "oos_r2_post1950": 0.0,
+              "cw_t": null,
+              "cw_p": null,
+              "dir_hit": 0.793,
+              "verdict": "reference",
+              "n": 1148,
+              "n_eff": 19,
+              "window": [
+                "1925-11-30",
+                "2021-06-30"
+              ]
+            },
+            {
+              "model": "goyal_welch",
+              "oos_r2": -0.024,
+              "oos_r2_post1950": -0.024,
+              "cw_t": 1.28,
+              "cw_p": 0.101,
+              "dir_hit": 0.779,
+              "verdict": "loses_to_mean",
+              "n": 362,
+              "n_eff": 6,
+              "window": [
+                "1991-05-31",
+                "2021-06-30"
+              ]
+            },
+            {
+              "model": "cape_yield",
+              "oos_r2": -0.033,
+              "oos_r2_post1950": -0.279,
+              "cw_t": 1.46,
+              "cw_p": 0.072,
+              "dir_hit": 0.754,
+              "verdict": "loses_to_mean",
+              "n": 1148,
+              "n_eff": 19,
+              "window": [
+                "1925-11-30",
+                "2021-06-30"
+              ]
+            },
+            {
+              "model": "earn_yield",
+              "oos_r2": -0.034,
+              "oos_r2_post1950": -0.165,
+              "cw_t": 1.08,
+              "cw_p": 0.14,
+              "dir_hit": 0.758,
+              "verdict": "loses_to_mean",
+              "n": 1148,
+              "n_eff": 19,
+              "window": [
+                "1925-11-30",
+                "2021-06-30"
+              ]
+            },
+            {
+              "model": "term_spread",
+              "oos_r2": -0.063,
+              "oos_r2_post1950": -0.063,
+              "cw_t": 1.2,
+              "cw_p": 0.114,
+              "dir_hit": 0.762,
+              "verdict": "loses_to_mean",
+              "n": 362,
+              "n_eff": 6,
+              "window": [
+                "1991-05-31",
+                "2021-06-30"
+              ]
+            },
+            {
+              "model": "div_yield",
+              "oos_r2": -0.142,
+              "oos_r2_post1950": -0.455,
+              "cw_t": 0.87,
+              "cw_p": 0.193,
+              "dir_hit": 0.686,
+              "verdict": "loses_to_mean",
+              "n": 1148,
+              "n_eff": 19,
+              "window": [
+                "1925-11-30",
+                "2021-06-30"
+              ]
+            },
+            {
+              "model": "rw_zero",
+              "oos_r2": -0.454,
+              "oos_r2_post1950": -0.838,
+              "cw_t": -1.95,
+              "cw_p": 0.026,
+              "dir_hit": 0.0,
+              "verdict": "loses_to_mean",
+              "n": 1148,
+              "n_eff": 19,
+              "window": [
+                "1925-11-30",
+                "2021-06-30"
+              ]
+            }
+          ],
+          "distribution": [
+            {
+              "model": "gaussian",
+              "pinball": 0.0984,
+              "cover90": 0.854,
+              "pit_ks": 0.205,
+              "n": 910,
+              "verdict": "best"
+            },
+            {
+              "model": "historical",
+              "pinball": 0.0989,
+              "cover90": 0.948,
+              "pit_ks": 0.092,
+              "n": 910
+            },
+            {
+              "model": "student_t",
+              "pinball": 0.099,
+              "cover90": 0.841,
+              "pit_ks": 0.24,
+              "n": 910
+            },
+            {
+              "model": "garch_fhs",
+              "pinball": 0.1018,
+              "cover90": 0.826,
+              "pit_ks": 0.125,
+              "n": 910
+            }
+          ],
+          "headline": {
+            "valuation_increment": 0.045,
+            "valuation_increment_post1950": 0.037,
+            "n_predictors_beating_mean": 0,
+            "n_predictors": 5,
+            "n_eff": 19,
+            "dist_best": "gaussian"
+          }
+        },
+        "120mo": {
+          "horizon_months": 120,
+          "point": [
+            {
+              "model": "level0",
+              "oos_r2": 0.212,
+              "oos_r2_post1950": 0.406,
+              "cw_t": 3.98,
+              "cw_p": 0.0,
+              "dir_hit": 0.845,
+              "verdict": "beats_mean",
+              "n": 1028,
+              "n_eff": 8,
+              "window": [
+                "1930-11-30",
+                "2016-06-30"
+              ]
+            },
+            {
+              "model": "drift_only",
+              "oos_r2": 0.166,
+              "oos_r2_post1950": 0.342,
+              "cw_t": 3.61,
+              "cw_p": 0.0,
+              "dir_hit": 0.852,
+              "verdict": "beats_mean",
+              "n": 1028,
+              "n_eff": 8,
+              "window": [
+                "1930-11-30",
+                "2016-06-30"
+              ]
+            },
+            {
+              "model": "hist_mean",
+              "oos_r2": 0.0,
+              "oos_r2_post1950": 0.0,
+              "cw_t": null,
+              "cw_p": null,
+              "dir_hit": 0.917,
+              "verdict": "reference",
+              "n": 1028,
+              "n_eff": 8,
+              "window": [
+                "1930-11-30",
+                "2016-06-30"
+              ]
+            },
+            {
+              "model": "earn_yield",
+              "oos_r2": -0.019,
+              "oos_r2_post1950": -0.165,
+              "cw_t": 1.97,
+              "cw_p": 0.024,
+              "dir_hit": 0.887,
+              "verdict": "loses_to_mean",
+              "n": 1028,
+              "n_eff": 8,
+              "window": [
+                "1930-11-30",
+                "2016-06-30"
+              ]
+            },
+            {
+              "model": "cape_yield",
+              "oos_r2": -0.083,
+              "oos_r2_post1950": -0.201,
+              "cw_t": 1.05,
+              "cw_p": 0.147,
+              "dir_hit": 0.917,
+              "verdict": "loses_to_mean",
+              "n": 1028,
+              "n_eff": 8,
+              "window": [
+                "1930-11-30",
+                "2016-06-30"
+              ]
+            },
+            {
+              "model": "div_yield",
+              "oos_r2": -0.187,
+              "oos_r2_post1950": -0.317,
+              "cw_t": -0.39,
+              "cw_p": 0.349,
+              "dir_hit": 0.912,
+              "verdict": "loses_to_mean",
+              "n": 1028,
+              "n_eff": 8,
+              "window": [
+                "1930-11-30",
+                "2016-06-30"
+              ]
+            },
+            {
+              "model": "rw_zero",
+              "oos_r2": -1.042,
+              "oos_r2_post1950": -1.369,
+              "cw_t": -3.42,
+              "cw_p": 0.0,
+              "dir_hit": 0.0,
+              "verdict": "loses_to_mean",
+              "n": 1028,
+              "n_eff": 8,
+              "window": [
+                "1930-11-30",
+                "2016-06-30"
+              ]
+            },
+            {
+              "model": "term_spread",
+              "oos_r2": -1.108,
+              "oos_r2_post1950": -1.108,
+              "cw_t": -0.19,
+              "cw_p": 0.423,
+              "dir_hit": 0.884,
+              "verdict": "loses_to_mean",
+              "n": 242,
+              "n_eff": 2,
+              "window": [
+                "1996-05-31",
+                "2016-06-30"
+              ]
+            },
+            {
+              "model": "goyal_welch",
+              "oos_r2": -1.318,
+              "oos_r2_post1950": -1.318,
+              "cw_t": -2.11,
+              "cw_p": 0.017,
+              "dir_hit": 0.864,
+              "verdict": "loses_to_mean",
+              "n": 242,
+              "n_eff": 2,
+              "window": [
+                "1996-05-31",
+                "2016-06-30"
+              ]
+            }
+          ],
+          "distribution": [
+            {
+              "model": "student_t",
+              "pinball": 0.1138,
+              "cover90": 0.886,
+              "pit_ks": 0.154,
+              "n": 694,
+              "verdict": "best"
+            },
+            {
+              "model": "gaussian",
+              "pinball": 0.1142,
+              "cover90": 0.911,
+              "pit_ks": 0.162,
+              "n": 694
+            },
+            {
+              "model": "historical",
+              "pinball": 0.1575,
+              "cover90": 0.869,
+              "pit_ks": 0.161,
+              "n": 694
+            },
+            {
+              "model": "garch_fhs",
+              "pinball": 0.315,
+              "cover90": 0.728,
+              "pit_ks": 0.234,
+              "n": 694
+            }
+          ],
+          "headline": {
+            "valuation_increment": 0.046,
+            "valuation_increment_post1950": 0.064,
+            "n_predictors_beating_mean": 0,
+            "n_predictors": 5,
+            "n_eff": 8,
+            "dist_best": "student_t"
+          }
+        }
+      }
+    }
+  }
+}

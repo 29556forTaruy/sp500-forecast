@@ -30,10 +30,12 @@ jobs:
           STRICT_COVERAGE: "1"   # block the commit if the 12m fan coverage drifts out of [0.86, 0.94]
       - name: Reliability tests before shipping (episode / acceptance / coverage gates)
         run: uv run pytest -q -m "not slow"
+      - name: Refresh benchmark leaderboard
+        run: uv run python benchmarks.py
       - name: Commit refreshed forecast (JSON only — CSVs are regenerated each run)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add app/forecast.json app/history.json
+          git add app/forecast.json app/history.json app/benchmarks.json
           git diff --cached --quiet || git commit -m "daily: refresh forecast ($(date -u +%F))"
           git push

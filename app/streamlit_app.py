@@ -33,7 +33,11 @@ st.markdown(
 def load():
     fc = json.loads((APP / "forecast.json").read_text())
     hist = json.loads((APP / "history.json").read_text())
-    return fc, hist
+    try:
+        bench = json.loads((APP / "benchmarks.json").read_text())
+    except FileNotFoundError:
+        bench = None        # leaderboard not built yet — the ⑧ tab degrades gracefully
+    return fc, hist, bench
 
 
 # ============================================================ i18n strings
@@ -44,7 +48,33 @@ T = {
         "title": "Market Fan",
         "tagline": "calibrated probability fan charts for equity indices",
         "tab_whatif": "⑦ What-if",
-        "tab_compare": "⑧ Compare",
+        "tab_bench": "⑧ Benchmark",
+        "tab_compare": "⑨ Compare",
+        "bench_h": "How does it compare to the world's models?",
+        "bench_intro": "Our forecast vs the academic standard benchmarks, walk-forward, scored by "
+                       "**OOS R² against the expanding historical mean** (Goyal-Welch 2008's reference). "
+                       "Positive = beats the mean. The honest headline: at 1 year almost nothing reliably "
+                       "beats the mean and adding CAPE timing barely helps (it even hurts post-1950); "
+                       "the model's real edge is slow EPS-growth drift, and a kitchen-sink of all "
+                       "predictors overfits and loses. CAPE earns its keep only at long horizons.",
+        "bench_point_h": "Point forecast — vs the historical mean",
+        "bench_dist_h": "Distribution — vs Gaussian / Student-t / empirical",
+        "bench_caption": "At {h}: valuation (CAPE) timing adds **{vi:+.3f}** OOS R² over pure EPS "
+                         "drift (**{vi50:+.3f}** post-1950) — {vstory}. **{nb} of {npred}** standard "
+                         "predictors beat the mean. This horizon has ~**{neff}** independent windows "
+                         "(Stambaugh bias grows at long horizons). Best distribution shape: **{db}**.",
+        "bench_vstory_hurts": "i.e. valuation timing does *not* help at this horizon",
+        "bench_vstory_helps": "i.e. valuation finally pulls its weight",
+        "bench_col_model": "model",
+        "bench_col_r2": "OOS R² (full)",
+        "bench_col_r2_50": "OOS R² (post-1950)",
+        "bench_col_cwp": "Clark-West p",
+        "bench_col_dir": "direction hit",
+        "bench_col_verdict": "verdict",
+        "bench_col_win": "window",
+        "bench_col_pinball": "pinball ↓",
+        "bench_col_cover": "90% cover",
+        "bench_no_hz": "No leaderboard for this horizon — showing the nearest available.",
         "cmp_h": "Compare markets",
         "cmp_intro": "Both markets' 1-year fans, shown as % return from today so the scales line up "
                      "(levels differ: S&P ≈ 7,600 vs Nikkei ≈ 66,000). Wider = more uncertain.",
@@ -305,7 +335,32 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
         "title": "マーケット・ファン",
         "tagline": "株価指数の較正済み確率ファンチャート",
         "tab_whatif": "⑦ 試算",
-        "tab_compare": "⑧ 市場比較",
+        "tab_bench": "⑧ ベンチマーク",
+        "tab_compare": "⑨ 市場比較",
+        "bench_h": "世界のモデルと比べてどう?",
+        "bench_intro": "うちの予測 vs 学術標準のベンチマークをウォークフォワードで対決。指標は"
+                       "**過去平均(拡大窓)に対する OOS R²**(Goyal-Welch 2008 の基準)。プラス=過去平均に勝ち。"
+                       "正直な結論:**1年では何もほぼ過去平均に勝てず、CAPEタイミングはほとんど効かない"
+                       "(戦後はむしろ害)**。モデルの真の優位は遅いEPS成長ドリフトで、予測子を全部盛ると"
+                       "過学習して負ける。CAPEが効くのは長期だけ。",
+        "bench_point_h": "点予測 — 過去平均との対決",
+        "bench_dist_h": "分布 — 正規 / Student-t / 経験分布との対決",
+        "bench_caption": "{h}:バリュエーション(CAPE)タイミングはEPSドリフト単独に対し OOS R² を "
+                         "**{vi:+.3f}** 足す(戦後 **{vi50:+.3f}**)— {vstory}。標準予測子は "
+                         "**{npred}個中{nb}個**しか過去平均に勝てません。この期間の独立窓は約 **{neff}** 個"
+                         "(長期ほどStambaughバイアス大)。分布の最良形状:**{db}**。",
+        "bench_vstory_hurts": "=この期間ではバリュエーション・タイミングは効かない",
+        "bench_vstory_helps": "=長期でついにバリュエーションが効く",
+        "bench_col_model": "モデル",
+        "bench_col_r2": "OOS R²(全期間)",
+        "bench_col_r2_50": "OOS R²(戦後)",
+        "bench_col_cwp": "Clark-West p",
+        "bench_col_dir": "方向的中",
+        "bench_col_verdict": "判定",
+        "bench_col_win": "期間",
+        "bench_col_pinball": "pinball ↓",
+        "bench_col_cover": "90%カバー",
+        "bench_no_hz": "この期間のリーダーボードは無いので、近い期間を表示します。",
         "cmp_h": "市場を比較",
         "cmp_intro": "両市場の1年ファンを、今日からのリターン%で重ねて表示(水準が違うため: "
                      "S&P 約7,600 / 日経 約66,000)。幅が広いほど不確実。",
@@ -625,6 +680,28 @@ HZ_LABEL = {
     "180mo": {"en": "15 years", "ja": "15年"},
     "240mo": {"en": "20 years", "ja": "20年"},
 }
+BENCH_MODEL_LABEL = {
+    "level0": {"en": "Level-0 (this model)", "ja": "Level 0(本モデル)"},
+    "hist_mean": {"en": "Historical mean", "ja": "過去平均"},
+    "drift_only": {"en": "EPS-growth drift", "ja": "EPS成長ドリフト"},
+    "rw_zero": {"en": "Random walk (=0)", "ja": "ランダムウォーク(=0)"},
+    "div_yield": {"en": "Dividend yield (D/P)", "ja": "配当利回り(D/P)"},
+    "cape_yield": {"en": "CAPE yield (1/CAPE)", "ja": "CAPE利回り(1/CAPE)"},
+    "earn_yield": {"en": "Earnings yield (E/P)", "ja": "益利回り(E/P)"},
+    "term_spread": {"en": "Term spread (10y-2y)", "ja": "期間スプレッド(10y-2y)"},
+    "goyal_welch": {"en": "Goyal-Welch kitchen sink", "ja": "Goyal-Welch全部入り"},
+    "garch_fhs": {"en": "GARCH + FHS (this model)", "ja": "GARCH+FHS(本モデル)"},
+    "gaussian": {"en": "Gaussian", "ja": "正規分布"},
+    "student_t": {"en": "Student-t", "ja": "Student-t"},
+    "historical": {"en": "Empirical (unconditional)", "ja": "経験分布(無条件)"},
+}
+VERDICT_LABEL = {
+    "beats_mean": {"en": "beats mean", "ja": "過去平均に勝ち"},
+    "tie": {"en": "tie", "ja": "引き分け"},
+    "loses_to_mean": {"en": "loses to mean", "ja": "過去平均に負け"},
+    "reference": {"en": "— reference —", "ja": "— 基準 —"},
+    "best": {"en": "best", "ja": "最良"},
+}
 
 # ============================================================ language toggle
 _, lc = st.columns([4, 1])
@@ -640,7 +717,7 @@ def t(key, **kw):
 
 
 # ============================================================ data + header
-fc, hist = load()
+fc, hist, bench = load()
 
 
 def mlabel(v):
@@ -716,13 +793,19 @@ else:
 
 _tab_labels = list(t("tabs"))
 _tab_labels.append(t("tab_whatif"))                       # ⑦ always
+_show_bench = bench is not None
+if _show_bench:
+    _tab_labels.append(t("tab_bench"))                    # ⑧ when the leaderboard exists
 _show_compare = len(indices_obj) > 1
 if _show_compare:
-    _tab_labels.append(t("tab_compare"))                  # ⑧ when >1 market
+    _tab_labels.append(t("tab_compare"))                  # ⑨ when >1 market
 _tabs = st.tabs(_tab_labels)
 tab1, tab2, tab3, tab4, tab5, tab6 = _tabs[:6]
 tab_whatif = _tabs[6]
-tab_cmp = _tabs[7] if _show_compare else None
+_nxt = 7
+tab_bench = _tabs[_nxt] if _show_bench else None
+_nxt += 1 if _show_bench else 0
+tab_cmp = _tabs[_nxt] if _show_compare else None
 
 # ----------------------------------------------------------------- fan chart
 with tab1:
@@ -980,6 +1063,68 @@ with tab_whatif:
     figs.update_layout(height=420, xaxis_title=t("fan_x"), yaxis_title=t("fan_y"),
                        margin=dict(t=20), hovermode="x unified", legend=dict(orientation="h", y=-0.2))
     st.plotly_chart(figs, use_container_width=True)
+
+# ---------------------------------------------------------------- benchmark leaderboard
+if tab_bench is not None:
+    with tab_bench:
+        st.subheader(t("bench_h"))
+        st.write(t("bench_intro"))
+        bh = bench["indices"]["SP500"]["horizons"]
+        bkeys = list(bh.keys())
+        bdefault = hz if hz in bh else ("12mo" if "12mo" in bh else bkeys[0])
+        if hz not in bh:
+            st.caption(t("bench_no_hz"))
+        _bsel = st.segmented_control(t("sel_horizon"), [hz_label(k) for k in bkeys],
+                                     default=hz_label(bdefault), selection_mode="single")
+        bkey = next((k for k in bkeys if hz_label(k) == _bsel), bdefault)
+        blk = bh[bkey]; hd = blk["headline"]
+        vi = hd.get("valuation_increment") or 0.0; vi50 = hd.get("valuation_increment_post1950")
+        vstory = t("bench_vstory_helps") if (vi50 is not None and vi50 > 0.01) else t("bench_vstory_hurts")
+        st.info(t("bench_caption", h=hz_label(bkey), vi=vi, vi50=(vi50 if vi50 is not None else 0.0),
+                  vstory=vstory, nb=hd.get("n_predictors_beating_mean", "?"), npred=hd.get("n_predictors", "?"),
+                  neff=hd.get("n_eff", "?"),
+                  db=BENCH_MODEL_LABEL.get(hd.get("dist_best"), {}).get(L, hd.get("dist_best"))))
+
+        st.markdown(f"**{t('bench_point_h')}**")
+        prows = [{t("bench_col_model"): BENCH_MODEL_LABEL.get(r["model"], {}).get(L, r["model"]),
+                  t("bench_col_r2"): r["oos_r2"], t("bench_col_r2_50"): r.get("oos_r2_post1950"),
+                  t("bench_col_cwp"): r.get("cw_p"), t("bench_col_dir"): r["dir_hit"],
+                  t("bench_col_verdict"): VERDICT_LABEL.get(r["verdict"], {}).get(L, r["verdict"]),
+                  t("bench_col_win"): f"{r['window'][0][:7]}–{r['window'][1][:7]}"} for r in blk["point"]]
+
+        def r2_css(v):
+            try:
+                vv = float(v)
+            except (TypeError, ValueError):
+                return ""
+            tt = max(-1.0, min(1.0, vv / 0.1)); rgb = (40, 170, 70) if tt >= 0 else (210, 60, 60)
+            return f"background-color: rgba({rgb[0]},{rgb[1]},{rgb[2]},{abs(tt)*0.5+0.05:.2f})"
+
+        st.dataframe(pd.DataFrame(prows).style
+                     .map(r2_css, subset=[t("bench_col_r2"), t("bench_col_r2_50")])
+                     .format({t("bench_col_r2"): "{:+.3f}", t("bench_col_r2_50"): "{:+.3f}",
+                              t("bench_col_dir"): "{:.0%}"}, na_rep="—"),
+                     use_container_width=True, hide_index=True)
+
+        figb = go.Figure()
+        bmodels = [BENCH_MODEL_LABEL.get(r["model"], {}).get(L, r["model"]) for r in blk["point"]]
+        figb.add_trace(go.Bar(x=bmodels, y=[r["oos_r2"] for r in blk["point"]],
+                              name=t("bench_col_r2"), marker_color="#1f77b4"))
+        figb.add_trace(go.Bar(x=bmodels, y=[r.get("oos_r2_post1950") for r in blk["point"]],
+                              name=t("bench_col_r2_50"), marker_color="#aec7e8"))
+        figb.add_hline(y=0, line_color="grey")
+        figb.update_layout(height=380, barmode="group", yaxis_title="OOS R²", margin=dict(t=20),
+                           legend=dict(orientation="h", y=-0.25))
+        st.plotly_chart(figb, use_container_width=True)
+
+        st.markdown(f"**{t('bench_dist_h')}**")
+        drows = [{t("bench_col_model"): BENCH_MODEL_LABEL.get(d["model"], {}).get(L, d["model"]),
+                  t("bench_col_pinball"): d["pinball"], t("bench_col_cover"): d["cover90"],
+                  "PIT-KS": d["pit_ks"],
+                  t("bench_col_verdict"): VERDICT_LABEL.get(d.get("verdict"), {}).get(L, "")} for d in blk["distribution"]]
+        st.dataframe(pd.DataFrame(drows).style.format(
+            {t("bench_col_pinball"): "{:.4f}", t("bench_col_cover"): "{:.0%}", "PIT-KS": "{:.3f}"}),
+            use_container_width=True, hide_index=True)
 
 # ---------------------------------------------------------------- market compare
 if tab_cmp is not None:
