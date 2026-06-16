@@ -63,7 +63,36 @@ INDICATORS = [
     ("BAMLH0A0HYM2", "High-yield credit spread", "bearish"),
     ("UNRATE", "Unemployment rate", "neutral"),
     ("INDPRO", "Industrial production (YoY)", "bullish"),
+    # derived series (computed by derive_indicator_columns from existing master columns)
+    ("DIV_YIELD", "Dividend yield (D/P)", "bullish"),
+    ("EARN_YIELD", "Earnings yield (E/P)", "bullish"),
+    ("ERP", "Equity risk premium (E/P-10y)", "bullish"),
+    ("T10Y3M", "Term spread 10y-3m", "bullish"),
+    ("REAL_FEDFUNDS", "Real Fed funds", "bearish"),
+    ("CPI_YoY", "Inflation (YoY)", "bearish"),
+    ("M2_YoY", "M2 growth (YoY)", "bullish"),
 ]
+
+
+def derive_indicator_columns(master: pd.DataFrame) -> pd.DataFrame:
+    """Add derived analysis series from EXISTING master columns (no new fetch). Cross-column
+    ratios naturally land on the last jointly-valid month via the panel's dropna (the honest
+    behaviour — the per-indicator `asof` surfaces any lag, e.g. shiller_D/E end one quarter back)."""
+    m = master.set_index("date")
+
+    def yoy(s):
+        return 100.0 * (np.log(s) - np.log(s.shift(12)))
+
+    cpi_yoy = yoy(m["shiller_CPI"])
+    der = pd.DataFrame({
+        "DIV_YIELD": 100.0 * m["shiller_D"] / m["shiller_P"],
+        "EARN_YIELD": 100.0 * m["shiller_E"] / m["shiller_P"],
+        "ERP": 100.0 * m["shiller_E"] / m["shiller_P"] - m["DGS10"],
+        "REAL_FEDFUNDS": m["FEDFUNDS"] - cpi_yoy,
+        "CPI_YoY": cpi_yoy,
+        "M2_YoY": yoy(m["M2SL"]),
+    }, index=m.index).reset_index()
+    return master.merge(der, on="date", how="left")
 
 
 def block_bootstrap_ci(flags, block, n_boot=2000, lo=0.1, hi=0.9, seed=0):
@@ -415,12 +444,19 @@ def main():
     raw_s = {"const": pd.Series(vol_raw_const(rm), index=df["date"]),
              "ewma": pd.Series(vol_raw_ewma(rm), index=df["date"]),
              "garch": pd.Series(vol_raw_garch(rm), index=df["date"])}  # the expensive one, once
-    master = pd.read_csv(OUT / "master_monthly.csv", parse_dates=["date"])
+    master = derive_indicator_columns(pd.read_csv(OUT / "master_monthly.csv", parse_dates=["date"]))
     indicators = indicator_panel(master)
     # VIX (S&P 500 option-implied vol, 1990+) as a forward-looking vol model to TEST vs GARCH.
     # VIX is annualized %; (VIX/100)^2/12 is the equivalent monthly variance for the √H machinery.
     _vix = master.set_index("date")["VIXCLS"].reindex(df["date"]).to_numpy()
     raw_s["vix"] = pd.Series((_vix / 100.0) ** 2 / 12.0, index=df["date"])
+
+    # return-decomposition building blocks (Bogle/GMO): the drift is exactly
+    # g·(H/12) + λ·val_gap, so it splits cleanly into real-earnings-growth + valuation-change.
+    _lastd = df.iloc[-1]
+    g_annual = float(_lastd["g20_e10n"]); val_gap_now = float(_lastd["val_gap"])
+    div_y = next((i["value"] for i in indicators if i["key"] == "DIV_YIELD"), None)
+    infl = next((i["value"] for i in indicators if i["key"] == "CPI_YoY"), None)
 
     blocks = {}
     mirror12 = None
@@ -466,6 +502,14 @@ def main():
                             "cover90": round(cov["cover_90"], 3), "pit_ks": round(cov["pit_ks"], 3),
                             "pit_hist": pit_counts.tolist(), "note": note},
         }
+        # return decomposition (Bogle): the price-drift splits exactly; dividend & inflation
+        # are adjacent context (income is NOT in the price fan, inflation just renames real→nominal).
+        _grow = g_annual * (H / 12.0); _valc = lam_used * val_gap_now
+        assert abs((_grow + _valc) - mu_L) < 1e-9, "decomposition must reconcile to mu_log"
+        block["return_decomp"] = {
+            "mu_log_total": round(mu_L, 4),
+            "components_log": {"real_earnings_growth": round(_grow, 4), "valuation_change": round(_valc, 4)},
+            "info_annual_pct": {"dividend_yield": div_y, "inflation": infl}}
         if spec["tier"] == "long-run":
             in90 = ((realized >= quant["garch"][:, 0]) & (realized <= quant["garch"][:, -1]))[common]
             ci = block_bootstrap_ci(in90, block=H)

@@ -160,6 +160,16 @@ T = {
         "fan_x": "months ahead",
         "fan_y": "S&P 500 level",
         "fan_now": "now {spot}",
+        "decomp_h": "Where the return comes from",
+        "decomp_intro": "The expected price drift splits exactly into earnings growth and the "
+                        "valuation (CAPE) change; dividends are added on the side for total return.",
+        "decomp_growth": "Earnings growth", "decomp_valuation": "Valuation change",
+        "decomp_price": "Price drift", "decomp_div": "+ Dividend", "decomp_total": "Total return",
+        "decomp_y": "≈ annual % (log-additive)",
+        "decomp_caption": "Real earnings grow ≈ **{g}%/yr**, but today's extreme CAPE subtracts "
+                          "≈ **{v}%/yr** as it slowly normalizes; add ≈ **{d}%/yr** of dividends → an "
+                          "expected total return of ≈ **{tot}%/yr**. (This is the *mean* drift — the "
+                          "fan's median sits higher because of skew; the price fan itself excludes dividends.)",
         "fan_info": (
             "Walk-forward calibrated {w0}–{w1} (n={n}): the 80% band historically covered "
             "{c80} and the 90% band {c90} of outcomes (targets 80% / 90%). Drift = Level-0 "
@@ -440,6 +450,15 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
         "fan_x": "先の月数",
         "fan_y": "S&P 500 水準",
         "fan_now": "現在 {spot}",
+        "decomp_h": "リターンの内訳",
+        "decomp_intro": "期待される価格ドリフトは、利益成長とバリュエーション(CAPE)変化に厳密に分解できます。"
+                        "配当はトータルリターン用に横に加算します。",
+        "decomp_growth": "利益成長", "decomp_valuation": "バリュエーション変化",
+        "decomp_price": "価格ドリフト", "decomp_div": "+ 配当", "decomp_total": "トータルリターン",
+        "decomp_y": "≈ 年率%(対数加法)",
+        "decomp_caption": "実質利益は年率 ≈ **{g}%** 成長しますが、現在の極端なCAPEが緩やかに正常化する分 "
+                          "≈ **{v}%/年** を差し引きます。配当 ≈ **{d}%/年** を足すと、期待トータルリターンは "
+                          "≈ **{tot}%/年**。(これは*平均*ドリフト — ファンの中央値は歪みのため上。価格ファン自体は配当を含みません。)",
         "fan_info": (
             "ウォークフォワード較正 {w0}〜{w1}(n={n}):過去において80%帯は実際の {c80}、"
             "90%帯は {c90} の結果を含みました(目標 80% / 90%)。ドリフト = Level 0 構造アンカー、"
@@ -630,6 +649,13 @@ IND_LABEL = {
     "UNRATE": {"en": "Unemployment rate", "ja": "失業率"},
     "INDPRO": {"en": "Industrial production (YoY)", "ja": "鉱工業生産(前年比)"},
     "JP_TREND_GAP": {"en": "Price vs 20y trend", "ja": "20年トレンドからの乖離"},
+    "DIV_YIELD": {"en": "Dividend yield (D/P)", "ja": "配当利回り(D/P)"},
+    "EARN_YIELD": {"en": "Earnings yield (E/P)", "ja": "益利回り(E/P)"},
+    "ERP": {"en": "Equity risk premium", "ja": "株式リスクプレミアム"},
+    "T10Y3M": {"en": "Term spread (10y-3m)", "ja": "期間スプレッド(10年-3ヶ月)"},
+    "REAL_FEDFUNDS": {"en": "Real Fed funds", "ja": "実質FF金利"},
+    "CPI_YoY": {"en": "Inflation (YoY)", "ja": "インフレ(前年比)"},
+    "M2_YoY": {"en": "M2 growth (YoY)", "ja": "M2成長(前年比)"},
 }
 IND_HELP = {
     "shiller_CAPE": {
@@ -662,6 +688,27 @@ IND_HELP = {
     "JP_TREND_GAP": {
         "en": "How far the Nikkei sits above/below its rolling 20-year price trend (negative = above trend = expensive). A price-only valuation proxy — tested for 1-year predictive power, none detected (λ≈0), so it's shown as context, not used in the forecast drift.",
         "ja": "日経が20年の価格トレンドからどれだけ上/下にあるか(マイナス=トレンド超=割高)。価格のみのバリュエーション代替で、1年予測力を検証した結果シグナルは検出されず(λ≈0)、ドリフトには使わずコンテキストとして表示。"},
+    "DIV_YIELD": {
+        "en": "Annual dividends ÷ price. Low = expensive (income is thin). A classic Goyal-Welch predictor that, on its own, barely beats the historical mean (see ⑧).",
+        "ja": "年間配当 ÷ 株価。低い=割高(インカムが薄い)。古典的なGoyal-Welch予測子だが、単体では過去平均にほぼ勝てない(⑧参照)。"},
+    "EARN_YIELD": {
+        "en": "Trailing earnings ÷ price (= 1/PE). Higher = cheaper, but it spikes when earnings collapse (2009), so read it with care.",
+        "ja": "実績利益 ÷ 株価(=PERの逆数)。高い=割安だが、利益が急減すると跳ね上がる(2009年)ので注意。"},
+    "ERP": {
+        "en": "Earnings yield minus the 10-year Treasury yield (the 'Fed model'). Near zero now — equities barely out-yield bonds. Academically a weak timing signal; shown as context.",
+        "ja": "益利回り − 米10年国債利回り(『FEDモデル』)。現在ほぼゼロ=株は債券をほとんど上回らない。学術的にはタイミング指標として弱く、コンテキスト表示。"},
+    "T10Y3M": {
+        "en": "10-year minus 3-month Treasury yield. Negative (inverted) has preceded recessions; positive/steep = expansion.",
+        "ja": "米10年債 − 3ヶ月債。マイナス(逆イールド)は景気後退に先行、プラス・急傾斜は景気拡大。"},
+    "REAL_FEDFUNDS": {
+        "en": "Fed funds rate minus YoY inflation — how tight policy really is after inflation. Positive = restrictive.",
+        "ja": "FF金利 − 前年比インフレ=インフレ調整後の実質的な引き締め度。プラス=引き締め的。"},
+    "CPI_YoY": {
+        "en": "Year-over-year CPI inflation. High or volatile inflation is a headwind for valuations.",
+        "ja": "CPIの前年比インフレ率。高インフレ・乱高下はバリュエーションの逆風。"},
+    "M2_YoY": {
+        "en": "Year-over-year growth of the M2 money supply — a rough liquidity gauge.",
+        "ja": "M2マネーサプライの前年比成長 = おおまかな流動性の目安。"},
 }
 CASE_LABEL = {
     "Dot-com peak (Dec 1999)": {"en": "Dot-com peak (Dec 1999)", "ja": "ITバブル天井(1999年12月)"},
@@ -833,6 +880,28 @@ with tab1:
     else:
         st.info(t("fan_info", w0=cal["window"][0], w1=cal["window"][1], n=cal["n"],
                   c80=f"{cal['cover80']:.0%}", c90=f"{cal['cover90']:.0%}"))
+
+    rd = leaf.get("return_decomp")
+    if rd and not is_japan:
+        st.markdown(f"**{t('decomp_h')}**")
+        st.caption(t("decomp_intro"))
+        _hf = leaf["horizon_months"] / 12.0
+        _c = rd["components_log"]
+        _g = (_c["real_earnings_growth"] / _hf) * 100          # annualized log ≈ %/yr (additive)
+        _v = (_c["valuation_change"] / _hf) * 100
+        _d = rd["info_annual_pct"].get("dividend_yield") or 0.0
+        figd = go.Figure(go.Waterfall(
+            orientation="v", measure=["relative", "relative", "total", "relative", "total"],
+            x=[t("decomp_growth"), t("decomp_valuation"), t("decomp_price"), t("decomp_div"), t("decomp_total")],
+            y=[_g, _v, 0, _d, 0],
+            text=[f"{_g:+.1f}", f"{_v:+.1f}", f"{_g + _v:+.1f}", f"+{_d:.1f}", f"{_g + _v + _d:+.1f}"],
+            textposition="outside", connector={"line": {"color": "rgba(120,120,120,0.4)"}},
+            increasing={"marker": {"color": "#2ca02c"}}, decreasing={"marker": {"color": "#d62728"}},
+            totals={"marker": {"color": "#1f77b4"}}))
+        figd.add_hline(y=0, line_color="grey")
+        figd.update_layout(height=360, yaxis_title=t("decomp_y"), margin=dict(t=30), showlegend=False)
+        st.plotly_chart(figd, use_container_width=True)
+        st.caption(t("decomp_caption", g=f"{_g:.1f}", v=f"{_v:.1f}", d=f"{_d:.1f}", tot=f"{_g + _v + _d:.1f}"))
 
 # ---------------------------------------------------------------- heatmap
 with tab2:
