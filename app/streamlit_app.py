@@ -112,6 +112,12 @@ T = {
         "m_median": "12m median",
         "m_range90": "90% range",
         "m_range50": "50% range",
+        "spot_update": "Current price (update to the latest)",
+        "spot_update_help": "Type today's live index level — the whole fan re-anchors to it. For "
+                            "S&P 500 a rise nudges the 1-year drift down (valuation pulls back); for "
+                            "the Nikkei (no valuation lever) it just rescales proportionally.",
+        "spot_update_note": "↻ Re-anchored to your price (model data as of {asof}; stored spot was "
+                            "{old}). Drift / volatility / shape are from the last daily run.",
         "sel_horizon": "Horizon",
         "sel_index": "Market",
         "jp_caveat": (
@@ -422,6 +428,12 @@ The value here is an **honest distribution with calibrated uncertainty**, not a 
         "m_median": "12ヶ月中央値",
         "m_range90": "90%レンジ",
         "m_range50": "50%レンジ",
+        "spot_update": "現在値(最新に更新)",
+        "spot_update_help": "今日のリアルタイムの指数水準を入力すると、ファン全体が再アンカーされます。"
+                            "S&P 500 は値上がりで1年ドリフトがやや下がり(バリュエーションが効く)、"
+                            "日経(バリュエーション・レバー無し)は比例して動くだけです。",
+        "spot_update_note": "↻ あなたの入力値に再アンカー(モデルのデータは {asof} 時点、元の現在値は "
+                            "{old})。ドリフト/ボラ/形状は直近の日次実行値です。",
         "sel_horizon": "予測期間",
         "sel_index": "市場",
         "jp_caveat": (
@@ -844,6 +856,24 @@ q = leaf["price_quantiles"]; rq = leaf["return_quantiles_pct"]; cal = leaf["cali
 is_long = leaf.get("tier") == "long-run"
 hlabel = hz_label(hz)
 
+# live re-anchor: punch in the current price and the whole fan re-anchors to it.
+# S&P (λ>0): a rise pulls the drift down (valuation, d ln P̂/d ln C = 1-λ); Nikkei (λ=0): pure rescale.
+spot_json = float(idx_obj["spot"])
+_zg = leaf.get("z_grid")
+spot = st.number_input(t("spot_update"), value=spot_json, step=float(max(1.0, round(spot_json * 0.001))),
+                       help=t("spot_update_help"))
+mu_anch = float(m["mu_log"]); _sig = float(m["sigma"]); fan_disp = leaf["fan_path"]
+if _zg and abs(spot - spot_json) > 1e-6 and spot_json > 0 and spot > 0:
+    mu_anch = float(m["mu_log"]) - float(m.get("lambda_used", 0.0)) * math.log(spot / spot_json)
+    _zi = {"0.05": 0, "0.25": 4, "0.5": 9, "0.75": 14, "0.95": 18}
+    q = {k: round(spot * math.exp(mu_anch + _sig * _zg[i]), 1) for k, i in _zi.items()}
+    rq = {k: round((math.exp(mu_anch + _sig * _zg[i]) - 1) * 100, 1) for k, i in _zi.items()}
+    _Hm = leaf["horizon_months"]; _mm = list(range(1, _Hm + 1))
+    fan_disp = {"months": _mm, **{f"q{int(float(k)*100):02d}":
+                [round(spot * math.exp(mu_anch * kk / _Hm + _sig * _zg[i] * math.sqrt(kk / _Hm)), 1) for kk in _mm]
+                for k, i in _zi.items()}}
+    st.caption(t("spot_update_note", old=f"{spot_json:,.0f}", asof=fc["asof"]))
+
 st.caption(t("caption", index=idx_obj["label"], asof=fc["asof"], spot=f"{spot:,.0f}",
               drift=mlabel(m["drift"]), vol=mlabel(m["vol"]), shape=mlabel(m["shape"])))
 
@@ -883,7 +913,7 @@ tab_cmp = _tabs[_nxt] if _show_compare else None
 
 # ----------------------------------------------------------------- fan chart
 with tab1:
-    fp = leaf["fan_path"]; mo = [0] + fp["months"]
+    fp = fan_disp; mo = [0] + fp["months"]
     def path(qk): return [spot] + fp[qk]
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=mo, y=path("q95"), line=dict(width=0), showlegend=False, hoverinfo="skip"))
@@ -1098,7 +1128,7 @@ with tab_whatif:
   if not zg:
     st.info(t("tm_need"))
   else:
-    mu0 = leaf["model"]["mu_log"]; sig0 = leaf["model"]["sigma"]; Hm = leaf["horizon_months"]
+    mu0 = mu_anch; sig0 = leaf["model"]["sigma"]; Hm = leaf["horizon_months"]   # mu_anch = re-anchored to the current-price input
     qg = [round(0.05 * i, 2) for i in range(1, 20)]          # 0.05..0.95, matches z_grid
     z05, z25, z50, z75, z95 = zg[0], zg[4], zg[9], zg[14], zg[18]
 
