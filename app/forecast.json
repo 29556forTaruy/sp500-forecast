@@ -31,9 +31,9 @@
         {
           "key": "DGS10",
           "label": "10y Treasury yield",
-          "value": 4.41,
-          "z_10y": 1.31,
-          "pctile": 0.379,
+          "value": 4.4,
+          "z_10y": 1.3,
+          "pctile": 0.377,
           "direction": "neutral",
           "asof": "2026-06-30"
         },
@@ -49,9 +49,9 @@
         {
           "key": "VIXCLS",
           "label": "VIX",
-          "value": 18.63,
-          "z_10y": 0.0,
-          "pctile": 0.555,
+          "value": 18.89,
+          "z_10y": 0.04,
+          "pctile": 0.566,
           "direction": "bearish",
           "asof": "2026-06-30"
         },
@@ -67,8 +67,8 @@
         {
           "key": "BAMLH0A0HYM2",
           "label": "High-yield credit spread",
-          "value": 2.76,
-          "z_10y": -1.03,
+          "value": 2.78,
+          "z_10y": -0.98,
           "pctile": 0.081,
           "direction": "bearish",
           "asof": "2026-06-30"
@@ -121,9 +121,9 @@
         {
           "key": "T10Y3M",
           "label": "Term spread 10y-3m",
-          "value": 0.56,
-          "z_10y": 0.18,
-          "pctile": 0.245,
+          "value": 0.55,
+          "z_10y": 0.17,
+          "pctile": 0.24,
           "direction": "bullish",
           "asof": "2026-06-30"
         },
@@ -5313,10 +5313,10 @@
         "equity_price_annual_pct": 4.3,
         "dividend_yield_pct": 1.21,
         "equity_total_annual_pct": 5.51,
-        "bond_10y_pct": 4.41,
+        "bond_10y_pct": 4.4,
         "cash_pct": 3.63,
-        "tips_10y_real_pct": 2.23,
-        "erp_vs_bond_pct": 1.1
+        "tips_10y_real_pct": 2.19,
+        "erp_vs_bond_pct": 1.11
       }
     },
     "N225": {
@@ -5886,9 +5886,9 @@
     {
       "key": "DGS10",
       "label": "10y Treasury yield",
-      "value": 4.41,
-      "z_10y": 1.31,
-      "pctile": 0.379,
+      "value": 4.4,
+      "z_10y": 1.3,
+      "pctile": 0.377,
       "direction": "neutral",
       "asof": "2026-06-30"
     },
@@ -5904,9 +5904,9 @@
     {
       "key": "VIXCLS",
       "label": "VIX",
-      "value": 18.63,
-      "z_10y": 0.0,
-      "pctile": 0.555,
+      "value": 18.89,
+      "z_10y": 0.04,
+      "pctile": 0.566,
       "direction": "bearish",
       "asof": "2026-06-30"
     },
@@ -5922,8 +5922,8 @@
     {
       "key": "BAMLH0A0HYM2",
       "label": "High-yield credit spread",
-      "value": 2.76,
-      "z_10y": -1.03,
+      "value": 2.78,
+      "z_10y": -0.98,
       "pctile": 0.081,
       "direction": "bearish",
       "asof": "2026-06-30"
@@ -5976,9 +5976,9 @@
     {
       "key": "T10Y3M",
       "label": "Term spread 10y-3m",
-      "value": 0.56,
-      "z_10y": 0.18,
-      "pctile": 0.245,
+      "value": 0.55,
+      "z_10y": 0.17,
+      "pctile": 0.24,
       "direction": "bullish",
       "asof": "2026-06-30"
     },
