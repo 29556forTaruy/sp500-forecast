@@ -67,9 +67,9 @@
         {
           "key": "BAMLH0A0HYM2",
           "label": "High-yield credit spread",
-          "value": 2.74,
-          "z_10y": -1.03,
-          "pctile": 0.027,
+          "value": 2.75,
+          "z_10y": -1.01,
+          "pctile": 0.081,
           "direction": "bearish",
           "asof": "2026-07-31"
         },
@@ -5922,9 +5922,9 @@
     {
       "key": "BAMLH0A0HYM2",
       "label": "High-yield credit spread",
-      "value": 2.74,
-      "z_10y": -1.03,
-      "pctile": 0.027,
+      "value": 2.75,
+      "z_10y": -1.01,
+      "pctile": 0.081,
       "direction": "bearish",
       "asof": "2026-07-31"
     },
