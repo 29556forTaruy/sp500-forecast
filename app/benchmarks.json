@@ -41,7 +41,7 @@
             },
             {
               "model": "cape_yield",
-              "oos_r2": 0.02,
+              "oos_r2": 0.019,
               "oos_r2_post1950": -0.08,
               "cw_t": 1.72,
               "cw_p": 0.042,
@@ -89,7 +89,7 @@
               "oos_r2": -0.007,
               "oos_r2_post1950": -0.007,
               "cw_t": 0.68,
-              "cw_p": 0.25,
+              "cw_p": 0.249,
               "dir_hit": 0.797,
               "verdict": "loses_to_mean",
               "n": 459,
