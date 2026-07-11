@@ -22,18 +22,18 @@
         {
           "key": "T10Y2Y",
           "label": "Yield curve 10y-2y",
-          "value": 0.38,
-          "z_10y": 0.05,
-          "pctile": 0.329,
+          "value": 0.35,
+          "z_10y": -0.0,
+          "pctile": 0.324,
           "direction": "bullish",
           "asof": "2026-07-31"
         },
         {
           "key": "DGS10",
           "label": "10y Treasury yield",
-          "value": 4.56,
-          "z_10y": 1.41,
-          "pctile": 0.405,
+          "value": 4.54,
+          "z_10y": 1.39,
+          "pctile": 0.403,
           "direction": "neutral",
           "asof": "2026-07-31"
         },
@@ -49,9 +49,9 @@
         {
           "key": "VIXCLS",
           "label": "VIX",
-          "value": 16.9,
-          "z_10y": -0.25,
-          "pctile": 0.46,
+          "value": 15.84,
+          "z_10y": -0.4,
+          "pctile": 0.369,
           "direction": "bearish",
           "asof": "2026-07-31"
         },
@@ -5313,10 +5313,10 @@
         "equity_price_annual_pct": 4.1,
         "dividend_yield_pct": 1.09,
         "equity_total_annual_pct": 5.19,
-        "bond_10y_pct": 4.56,
+        "bond_10y_pct": 4.54,
         "cash_pct": 3.63,
         "tips_10y_real_pct": 2.31,
-        "erp_vs_bond_pct": 0.63
+        "erp_vs_bond_pct": 0.65
       }
     },
     "N225": {
@@ -5877,18 +5877,18 @@
     {
       "key": "T10Y2Y",
       "label": "Yield curve 10y-2y",
-      "value": 0.38,
-      "z_10y": 0.05,
-      "pctile": 0.329,
+      "value": 0.35,
+      "z_10y": -0.0,
+      "pctile": 0.324,
       "direction": "bullish",
       "asof": "2026-07-31"
     },
     {
       "key": "DGS10",
       "label": "10y Treasury yield",
-      "value": 4.56,
-      "z_10y": 1.41,
-      "pctile": 0.405,
+      "value": 4.54,
+      "z_10y": 1.39,
+      "pctile": 0.403,
       "direction": "neutral",
       "asof": "2026-07-31"
     },
@@ -5904,9 +5904,9 @@
     {
       "key": "VIXCLS",
       "label": "VIX",
-      "value": 16.9,
-      "z_10y": -0.25,
-      "pctile": 0.46,
+      "value": 15.84,
+      "z_10y": -0.4,
+      "pctile": 0.369,
       "direction": "bearish",
       "asof": "2026-07-31"
     },
