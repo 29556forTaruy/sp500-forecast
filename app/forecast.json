@@ -22,18 +22,18 @@
         {
           "key": "T10Y2Y",
           "label": "Yield curve 10y-2y",
-          "value": 0.41,
-          "z_10y": 0.11,
-          "pctile": 0.344,
+          "value": 0.37,
+          "z_10y": 0.04,
+          "pctile": 0.327,
           "direction": "bullish",
           "asof": "2026-07-31"
         },
         {
           "key": "DGS10",
           "label": "10y Treasury yield",
-          "value": 4.55,
-          "z_10y": 1.4,
-          "pctile": 0.404,
+          "value": 4.57,
+          "z_10y": 1.42,
+          "pctile": 0.406,
           "direction": "neutral",
           "asof": "2026-07-31"
         },
@@ -49,9 +49,9 @@
         {
           "key": "VIXCLS",
           "label": "VIX",
-          "value": 15.67,
-          "z_10y": -0.43,
-          "pctile": 0.358,
+          "value": 16.73,
+          "z_10y": -0.27,
+          "pctile": 0.442,
           "direction": "bearish",
           "asof": "2026-07-31"
         },
@@ -85,11 +85,11 @@
         {
           "key": "INDPRO",
           "label": "Industrial production (YoY)",
-          "value": 1.65,
-          "z_10y": 0.36,
-          "pctile": 0.384,
+          "value": 1.14,
+          "z_10y": 0.23,
+          "pctile": 0.351,
           "direction": "bullish",
-          "asof": "2026-05-31"
+          "asof": "2026-06-30"
         },
         {
           "key": "DIV_YIELD",
@@ -121,9 +121,9 @@
         {
           "key": "T10Y3M",
           "label": "Term spread 10y-3m",
-          "value": 0.73,
-          "z_10y": 0.35,
-          "pctile": 0.286,
+          "value": 0.7,
+          "z_10y": 0.32,
+          "pctile": 0.282,
           "direction": "bullish",
           "asof": "2026-07-31"
         },
@@ -5313,10 +5313,10 @@
         "equity_price_annual_pct": 4.1,
         "dividend_yield_pct": 1.09,
         "equity_total_annual_pct": 5.19,
-        "bond_10y_pct": 4.55,
+        "bond_10y_pct": 4.57,
         "cash_pct": 3.63,
-        "tips_10y_real_pct": 2.32,
-        "erp_vs_bond_pct": 0.64
+        "tips_10y_real_pct": 2.35,
+        "erp_vs_bond_pct": 0.62
       }
     },
     "N225": {
@@ -5877,18 +5877,18 @@
     {
       "key": "T10Y2Y",
       "label": "Yield curve 10y-2y",
-      "value": 0.41,
-      "z_10y": 0.11,
-      "pctile": 0.344,
+      "value": 0.37,
+      "z_10y": 0.04,
+      "pctile": 0.327,
       "direction": "bullish",
       "asof": "2026-07-31"
     },
     {
       "key": "DGS10",
       "label": "10y Treasury yield",
-      "value": 4.55,
-      "z_10y": 1.4,
-      "pctile": 0.404,
+      "value": 4.57,
+      "z_10y": 1.42,
+      "pctile": 0.406,
       "direction": "neutral",
       "asof": "2026-07-31"
     },
@@ -5904,9 +5904,9 @@
     {
       "key": "VIXCLS",
       "label": "VIX",
-      "value": 15.67,
-      "z_10y": -0.43,
-      "pctile": 0.358,
+      "value": 16.73,
+      "z_10y": -0.27,
+      "pctile": 0.442,
       "direction": "bearish",
       "asof": "2026-07-31"
     },
@@ -5940,11 +5940,11 @@
     {
       "key": "INDPRO",
       "label": "Industrial production (YoY)",
-      "value": 1.65,
-      "z_10y": 0.36,
-      "pctile": 0.384,
+      "value": 1.14,
+      "z_10y": 0.23,
+      "pctile": 0.351,
       "direction": "bullish",
-      "asof": "2026-05-31"
+      "asof": "2026-06-30"
     },
     {
       "key": "DIV_YIELD",
@@ -5976,9 +5976,9 @@
     {
       "key": "T10Y3M",
       "label": "Term spread 10y-3m",
-      "value": 0.73,
-      "z_10y": 0.35,
-      "pctile": 0.286,
+      "value": 0.7,
+      "z_10y": 0.32,
+      "pctile": 0.282,
       "direction": "bullish",
       "asof": "2026-07-31"
     },
