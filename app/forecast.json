@@ -22,9 +22,9 @@
         {
           "key": "T10Y2Y",
           "label": "Yield curve 10y-2y",
-          "value": 0.4,
-          "z_10y": 0.1,
-          "pctile": 0.333,
+          "value": 0.43,
+          "z_10y": 0.15,
+          "pctile": 0.351,
           "direction": "bullish",
           "asof": "2026-09-30"
         },
@@ -49,9 +49,9 @@
         {
           "key": "VIXCLS",
           "label": "VIX",
-          "value": 15.2,
-          "z_10y": -0.5,
-          "pctile": 0.317,
+          "value": 14.32,
+          "z_10y": -0.63,
+          "pctile": 0.277,
           "direction": "bearish",
           "asof": "2026-09-30"
         },
@@ -78,9 +78,9 @@
           "label": "Unemployment rate",
           "value": 4.1,
           "z_10y": -0.26,
-          "pctile": 0.184,
+          "pctile": 0.183,
           "direction": "neutral",
-          "asof": "2026-07-31"
+          "asof": "2026-08-31"
         },
         {
           "key": "INDPRO",
@@ -121,8 +121,8 @@
         {
           "key": "T10Y3M",
           "label": "Term spread 10y-3m",
-          "value": 0.87,
-          "z_10y": 0.51,
+          "value": 0.88,
+          "z_10y": 0.52,
           "pctile": 0.324,
           "direction": "bullish",
           "asof": "2026-09-30"
@@ -5315,7 +5315,7 @@
         "equity_total_annual_pct": 5.5,
         "bond_10y_pct": 4.79,
         "cash_pct": 3.63,
-        "tips_10y_real_pct": 2.44,
+        "tips_10y_real_pct": 2.45,
         "erp_vs_bond_pct": 0.71
       }
     },
@@ -5877,9 +5877,9 @@
     {
       "key": "T10Y2Y",
       "label": "Yield curve 10y-2y",
-      "value": 0.4,
-      "z_10y": 0.1,
-      "pctile": 0.333,
+      "value": 0.43,
+      "z_10y": 0.15,
+      "pctile": 0.351,
       "direction": "bullish",
       "asof": "2026-09-30"
     },
@@ -5904,9 +5904,9 @@
     {
       "key": "VIXCLS",
       "label": "VIX",
-      "value": 15.2,
-      "z_10y": -0.5,
-      "pctile": 0.317,
+      "value": 14.32,
+      "z_10y": -0.63,
+      "pctile": 0.277,
       "direction": "bearish",
       "asof": "2026-09-30"
     },
@@ -5933,9 +5933,9 @@
       "label": "Unemployment rate",
       "value": 4.1,
       "z_10y": -0.26,
-      "pctile": 0.184,
+      "pctile": 0.183,
       "direction": "neutral",
-      "asof": "2026-07-31"
+      "asof": "2026-08-31"
     },
     {
       "key": "INDPRO",
@@ -5976,8 +5976,8 @@
     {
       "key": "T10Y3M",
       "label": "Term spread 10y-3m",
-      "value": 0.87,
-      "z_10y": 0.51,
+      "value": 0.88,
+      "z_10y": 0.52,
       "pctile": 0.324,
       "direction": "bullish",
       "asof": "2026-09-30"
