@@ -22,9 +22,9 @@
         {
           "key": "T10Y2Y",
           "label": "Yield curve 10y-2y",
-          "value": 0.25,
-          "z_10y": -0.17,
-          "pctile": 0.276,
+          "value": 0.26,
+          "z_10y": -0.15,
+          "pctile": 0.283,
           "direction": "bullish",
           "asof": "2026-09-30"
         },
@@ -67,9 +67,9 @@
         {
           "key": "BAMLH0A0HYM2",
           "label": "High-yield credit spread",
-          "value": 2.68,
-          "z_10y": -1.07,
-          "pctile": 0.027,
+          "value": 2.73,
+          "z_10y": -0.95,
+          "pctile": 0.054,
           "direction": "bearish",
           "asof": "2026-09-30"
         },
@@ -121,9 +121,9 @@
         {
           "key": "T10Y3M",
           "label": "Term spread 10y-3m",
-          "value": 0.8,
-          "z_10y": 0.43,
-          "pctile": 0.304,
+          "value": 0.92,
+          "z_10y": 0.56,
+          "pctile": 0.331,
           "direction": "bullish",
           "asof": "2026-09-30"
         },
@@ -5315,7 +5315,7 @@
         "equity_total_annual_pct": 5.5,
         "bond_10y_pct": 4.96,
         "cash_pct": 3.63,
-        "tips_10y_real_pct": 2.62,
+        "tips_10y_real_pct": 2.63,
         "erp_vs_bond_pct": 0.54
       }
     },
@@ -5877,9 +5877,9 @@
     {
       "key": "T10Y2Y",
       "label": "Yield curve 10y-2y",
-      "value": 0.25,
-      "z_10y": -0.17,
-      "pctile": 0.276,
+      "value": 0.26,
+      "z_10y": -0.15,
+      "pctile": 0.283,
       "direction": "bullish",
       "asof": "2026-09-30"
     },
@@ -5922,9 +5922,9 @@
     {
       "key": "BAMLH0A0HYM2",
       "label": "High-yield credit spread",
-      "value": 2.68,
-      "z_10y": -1.07,
-      "pctile": 0.027,
+      "value": 2.73,
+      "z_10y": -0.95,
+      "pctile": 0.054,
       "direction": "bearish",
       "asof": "2026-09-30"
     },
@@ -5976,9 +5976,9 @@
     {
       "key": "T10Y3M",
       "label": "Term spread 10y-3m",
-      "value": 0.8,
-      "z_10y": 0.43,
-      "pctile": 0.304,
+      "value": 0.92,
+      "z_10y": 0.56,
+      "pctile": 0.331,
       "direction": "bullish",
       "asof": "2026-09-30"
     },
