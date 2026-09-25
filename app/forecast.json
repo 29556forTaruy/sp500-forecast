@@ -22,18 +22,18 @@
         {
           "key": "T10Y2Y",
           "label": "Yield curve 10y-2y",
-          "value": 0.26,
-          "z_10y": -0.15,
-          "pctile": 0.283,
+          "value": 0.31,
+          "z_10y": -0.06,
+          "pctile": 0.308,
           "direction": "bullish",
           "asof": "2026-09-30"
         },
         {
           "key": "DGS10",
           "label": "10y Treasury yield",
-          "value": 4.96,
-          "z_10y": 1.66,
-          "pctile": 0.458,
+          "value": 5.11,
+          "z_10y": 1.78,
+          "pctile": 0.475,
           "direction": "neutral",
           "asof": "2026-09-30"
         },
@@ -67,9 +67,9 @@
         {
           "key": "BAMLH0A0HYM2",
           "label": "High-yield credit spread",
-          "value": 2.73,
-          "z_10y": -0.95,
-          "pctile": 0.054,
+          "value": 2.8,
+          "z_10y": -0.79,
+          "pctile": 0.135,
           "direction": "bearish",
           "asof": "2026-09-30"
         },
@@ -121,9 +121,9 @@
         {
           "key": "T10Y3M",
           "label": "Term spread 10y-3m",
-          "value": 0.92,
-          "z_10y": 0.56,
-          "pctile": 0.331,
+          "value": 0.94,
+          "z_10y": 0.58,
+          "pctile": 0.341,
           "direction": "bullish",
           "asof": "2026-09-30"
         },
@@ -5313,10 +5313,10 @@
         "equity_price_annual_pct": 4.4,
         "dividend_yield_pct": 1.1,
         "equity_total_annual_pct": 5.5,
-        "bond_10y_pct": 4.96,
+        "bond_10y_pct": 5.11,
         "cash_pct": 3.63,
-        "tips_10y_real_pct": 2.63,
-        "erp_vs_bond_pct": 0.54
+        "tips_10y_real_pct": 2.76,
+        "erp_vs_bond_pct": 0.39
       }
     },
     "N225": {
@@ -5877,18 +5877,18 @@
     {
       "key": "T10Y2Y",
       "label": "Yield curve 10y-2y",
-      "value": 0.26,
-      "z_10y": -0.15,
-      "pctile": 0.283,
+      "value": 0.31,
+      "z_10y": -0.06,
+      "pctile": 0.308,
       "direction": "bullish",
       "asof": "2026-09-30"
     },
     {
       "key": "DGS10",
       "label": "10y Treasury yield",
-      "value": 4.96,
-      "z_10y": 1.66,
-      "pctile": 0.458,
+      "value": 5.11,
+      "z_10y": 1.78,
+      "pctile": 0.475,
       "direction": "neutral",
       "asof": "2026-09-30"
     },
@@ -5922,9 +5922,9 @@
     {
       "key": "BAMLH0A0HYM2",
       "label": "High-yield credit spread",
-      "value": 2.73,
-      "z_10y": -0.95,
-      "pctile": 0.054,
+      "value": 2.8,
+      "z_10y": -0.79,
+      "pctile": 0.135,
       "direction": "bearish",
       "asof": "2026-09-30"
     },
@@ -5976,9 +5976,9 @@
     {
       "key": "T10Y3M",
       "label": "Term spread 10y-3m",
-      "value": 0.92,
-      "z_10y": 0.56,
-      "pctile": 0.331,
+      "value": 0.94,
+      "z_10y": 0.58,
+      "pctile": 0.341,
       "direction": "bullish",
       "asof": "2026-09-30"
     },
