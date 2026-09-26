@@ -22,18 +22,18 @@
         {
           "key": "T10Y2Y",
           "label": "Yield curve 10y-2y",
-          "value": 0.31,
-          "z_10y": -0.06,
-          "pctile": 0.308,
+          "value": 0.36,
+          "z_10y": 0.03,
+          "pctile": 0.325,
           "direction": "bullish",
           "asof": "2026-09-30"
         },
         {
           "key": "DGS10",
           "label": "10y Treasury yield",
-          "value": 5.11,
-          "z_10y": 1.78,
-          "pctile": 0.475,
+          "value": 5.18,
+          "z_10y": 1.84,
+          "pctile": 0.483,
           "direction": "neutral",
           "asof": "2026-09-30"
         },
@@ -121,9 +121,9 @@
         {
           "key": "T10Y3M",
           "label": "Term spread 10y-3m",
-          "value": 0.94,
-          "z_10y": 0.58,
-          "pctile": 0.341,
+          "value": 0.93,
+          "z_10y": 0.57,
+          "pctile": 0.337,
           "direction": "bullish",
           "asof": "2026-09-30"
         },
@@ -5313,10 +5313,10 @@
         "equity_price_annual_pct": 4.4,
         "dividend_yield_pct": 1.1,
         "equity_total_annual_pct": 5.5,
-        "bond_10y_pct": 5.11,
+        "bond_10y_pct": 5.18,
         "cash_pct": 3.63,
-        "tips_10y_real_pct": 2.76,
-        "erp_vs_bond_pct": 0.39
+        "tips_10y_real_pct": 2.85,
+        "erp_vs_bond_pct": 0.32
       }
     },
     "N225": {
@@ -5877,18 +5877,18 @@
     {
       "key": "T10Y2Y",
       "label": "Yield curve 10y-2y",
-      "value": 0.31,
-      "z_10y": -0.06,
-      "pctile": 0.308,
+      "value": 0.36,
+      "z_10y": 0.03,
+      "pctile": 0.325,
       "direction": "bullish",
       "asof": "2026-09-30"
     },
     {
       "key": "DGS10",
       "label": "10y Treasury yield",
-      "value": 5.11,
-      "z_10y": 1.78,
-      "pctile": 0.475,
+      "value": 5.18,
+      "z_10y": 1.84,
+      "pctile": 0.483,
       "direction": "neutral",
       "asof": "2026-09-30"
     },
@@ -5976,9 +5976,9 @@
     {
       "key": "T10Y3M",
       "label": "Term spread 10y-3m",
-      "value": 0.94,
-      "z_10y": 0.58,
-      "pctile": 0.341,
+      "value": 0.93,
+      "z_10y": 0.57,
+      "pctile": 0.337,
       "direction": "bullish",
       "asof": "2026-09-30"
     },
